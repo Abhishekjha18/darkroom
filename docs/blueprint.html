@@ -1,0 +1,283 @@
+<title>Darkroom Blueprint</title>
+<style>
+  :root {
+    --paper:#F3F5F7; --surface:#FFFFFF; --surface-2:#EDF0F3;
+    --ink:#161B23; --ink-2:#38424F; --muted:#5E6976; --faint:#8A94A1;
+    --rule:#D7DCE3; --rule-strong:#BFC7D1;
+    --accent:#8A6115; --accent-soft:#B98B2A; --accent-wash:#F0E7D4;
+    --good:#1B6A55; --warn:#8A6410; --crit:#9E3A28;
+    --good-wash:#DDEDE7; --warn-wash:#F4E9CF; --crit-wash:#F6DFD9;
+    --shadow:0 1px 2px rgba(22,27,35,.05), 0 8px 24px -12px rgba(22,27,35,.18);
+    --display:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+    --body:-apple-system,BlinkMacSystemFont,"Segoe UI Variable Text","Segoe UI",Roboto,system-ui,sans-serif;
+    --mono:ui-monospace,"Cascadia Mono","Cascadia Code",Consolas,"SF Mono",Menlo,monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:#11151B; --surface:#171D25; --surface-2:#1D242E;
+      --ink:#E5E9EF; --ink-2:#C2CAD4; --muted:#95A0AE; --faint:#6E7987;
+      --rule:#27303B; --rule-strong:#3A4554;
+      --accent:#D9A441; --accent-soft:#B9862F; --accent-wash:#2B2317;
+      --good:#4FB093; --warn:#D9A441; --crit:#E07E68;
+      --good-wash:#15302A; --warn-wash:#2B2317; --crit-wash:#331F1A;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:#11151B; --surface:#171D25; --surface-2:#1D242E;
+    --ink:#E5E9EF; --ink-2:#C2CAD4; --muted:#95A0AE; --faint:#6E7987;
+    --rule:#27303B; --rule-strong:#3A4554;
+    --accent:#D9A441; --accent-soft:#B9862F; --accent-wash:#2B2317;
+    --good:#4FB093; --warn:#D9A441; --crit:#E07E68;
+    --good-wash:#15302A; --warn-wash:#2B2317; --crit-wash:#331F1A;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+
+  * { box-sizing:border-box; }
+  body { background:var(--paper); color:var(--ink); font-family:var(--body); font-size:16.5px; line-height:1.62; margin:0; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1180px; margin:0 auto; padding:0 clamp(18px,4vw,48px) 96px; }
+  .col { max-width:68ch; }
+
+  h1,h2,h3 { font-family:var(--display); font-weight:600; text-wrap:balance; letter-spacing:-.01em; }
+  h1 { font-size:clamp(2.1rem,5vw,3.1rem); line-height:1.08; margin:.1em 0 .3em; }
+  h2 { font-size:clamp(1.5rem,3vw,2rem); line-height:1.15; margin:0 0 .5rem; }
+  h3 { font-size:1.1rem; line-height:1.3; margin:0 0 .35rem; }
+  p { margin:0 0 1rem; }
+  strong { font-weight:640; color:var(--ink); }
+  code, .mono { font-family:var(--mono); font-size:.88em; }
+  code { background:var(--surface-2); padding:.1em .35em; border-radius:3px; }
+
+  .eyebrow { font-family:var(--mono); font-size:.7rem; letter-spacing:.16em; text-transform:uppercase; color:var(--faint); margin:0 0 .5rem; }
+  header.mast { padding:clamp(40px,7vw,76px) 0 28px; border-bottom:1px solid var(--rule); }
+  .standfirst { font-size:1.12rem; color:var(--ink-2); max-width:64ch; }
+  .meta { display:flex; flex-wrap:wrap; gap:6px 22px; margin-top:20px; font-family:var(--mono); font-size:.75rem; color:var(--muted); }
+
+  section { padding-top:clamp(44px,6vw,68px); }
+  .sec-head { display:flex; align-items:baseline; gap:14px; margin-bottom:18px; }
+  .sec-num { font-family:var(--mono); font-size:.75rem; color:var(--accent); letter-spacing:.1em; }
+
+  .scroller { overflow-x:auto; border:1px solid var(--rule); border-radius:4px; background:var(--surface); }
+  table { border-collapse:collapse; width:100%; font-size:.845rem; }
+  th, td { padding:9px 12px; text-align:left; border-bottom:1px solid var(--rule); vertical-align:top; }
+  thead th { font-family:var(--mono); font-size:.66rem; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); font-weight:500; background:var(--surface-2); border-bottom:1px solid var(--rule-strong); white-space:nowrap; }
+  tbody tr:last-child td { border-bottom:none; }
+  td.num { font-family:var(--mono); font-variant-numeric:tabular-nums; text-align:right; color:var(--ink-2); white-space:nowrap; }
+  td.k { font-weight:620; white-space:nowrap; }
+  td.k .mono { color:var(--accent); }
+  tfoot td { font-family:var(--mono); font-weight:700; background:var(--surface-2); border-top:1px solid var(--rule-strong); }
+
+  .chip { display:inline-block; font-family:var(--mono); font-size:.66rem; letter-spacing:.06em; padding:2px 7px; border-radius:100px; text-transform:uppercase; white-space:nowrap; }
+  .chip.g { background:var(--good-wash); color:var(--good); }
+  .chip.w { background:var(--warn-wash); color:var(--warn); }
+  .chip.c { background:var(--crit-wash); color:var(--crit); }
+  .chip.n { background:var(--surface-2); color:var(--muted); }
+
+  .banner { margin-top:28px; background:var(--surface); border:1px solid var(--rule); border-left:3px solid var(--good); border-radius:4px; padding:clamp(20px,3vw,28px); box-shadow:var(--shadow); }
+  .banner.red { border-left-color:var(--crit); }
+  .banner h3 { font-size:1.25rem; }
+  .banner p:last-child { margin-bottom:0; }
+
+  .grid2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; }
+  .card { background:var(--surface); border:1px solid var(--rule); border-radius:4px; padding:18px 20px; }
+  .card h3 { margin-bottom:6px; }
+  .card p { font-size:.93rem; color:var(--ink-2); margin-bottom:0; }
+  .card .tag { font-family:var(--mono); font-size:.64rem; letter-spacing:.12em; text-transform:uppercase; color:var(--faint); display:block; margin-bottom:6px; }
+
+  ul.tight { padding-left:1.15em; margin:0 0 1rem; }
+  ul.tight li { margin-bottom:.45rem; }
+
+  .callout { background:var(--surface); border:1px solid var(--rule); border-left:3px solid var(--warn); border-radius:4px; padding:16px 20px; margin:20px 0; font-size:.95rem; color:var(--ink-2); }
+  .callout b { color:var(--ink); }
+
+  footer { margin-top:72px; padding-top:22px; border-top:1px solid var(--rule); color:var(--faint); font-family:var(--mono); font-size:.72rem; }
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Zero Dependency · pre-kickoff · buildability audit</p>
+  <h1>Darkroom Blueprint</h1>
+  <p class="standfirst">Every subsystem, its governing specification, its line budget, and the external oracle that proves it correct. Plus the standard-library gaps that kill other candidates, and the one thing I will not promise you can build.</p>
+  <div class="meta">
+    <span>Rust · std only</span>
+    <span>Est. 7,750 core + 2,000 test LOC</span>
+    <span>Track F</span>
+  </div>
+</header>
+
+<div class="banner">
+  <p class="eyebrow" style="color:var(--good)">Feasibility verdict</p>
+  <h3>Nothing in darkroom depends on an unsolved problem.</h3>
+  <p style="color:var(--ink-2)">Every module below implements a published, frozen, freely-available specification that has been implemented independently thousands of times. There is no research, no reverse engineering, no undocumented format, and no operating-system capability that Rust's standard library withholds. Each module also has an <strong>external oracle</strong> — a piece of software you do not control that will tell you immediately whether your implementation is correct.</p>
+  <p style="color:var(--ink-2);margin-top:10px">That combination is what makes it not a hoax: you are never more than one test away from knowing you are wrong.</p>
+</div>
+
+<section>
+  <div class="sec-head"><span class="sec-num">01</span><h2>What Rust's standard library actually withholds</h2></div>
+  <div class="col">
+    <p>This is the audit that matters. These are the real gaps — the places where a stdlib-only project discovers at hour 40 that the thing it needs simply is not there. Each row is the gap, the workaround that stays inside std, and whether it is genuinely solved or merely survivable.</p>
+  </div>
+  <div class="scroller" style="margin-top:18px">
+    <table>
+      <thead><tr><th>Missing from std</th><th>Consequence</th><th>Pure-std workaround</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="k">Local IP address<br><span class="mono" style="font-weight:400;color:var(--muted)">no getifaddrs</span></td>
+          <td>You cannot enumerate network interfaces, so you cannot tell the phone which address to open.</td>
+          <td>Bind a <code>UdpSocket</code> to <code>0.0.0.0:0</code>, <code>connect()</code> it to any routable address, then read <code>local_addr()</code>. UDP connect sets a peer without transmitting a packet, so the kernel reveals the interface it would route through. Falls back to a <code>--host</code> flag when no default route exists.</td>
+          <td><span class="chip g">Solved</span></td>
+        </tr>
+        <tr>
+          <td class="k">Randomness<br><span class="mono" style="font-weight:400;color:var(--muted)">no rand</span></td>
+          <td>No RNG of any kind ships in std.</td>
+          <td><code>RandomState::new()</code> is seeded by the standard library from the operating system's CSPRNG. Hashing a fixed value with a fresh instance extracts OS entropy. Legitimate, honest, and one of the better STDLIB.md entries you will write.</td>
+          <td><span class="chip g">Solved</span></td>
+        </tr>
+        <tr>
+          <td class="k">Socket options<br><span class="mono" style="font-weight:400;color:var(--muted)">no SO_REUSEADDR</span></td>
+          <td>You cannot share a bound UDP port with another process — which means <strong>mDNS on port 5353 is not reliably possible</strong> next to a running Bonjour or avahi.</td>
+          <td>None inside std. Do not use mDNS. The QR code carries the raw IP and port, which needs no discovery protocol at all.</td>
+          <td><span class="chip w">Designed around</span></td>
+        </tr>
+        <tr>
+          <td class="k">TLS</td>
+          <td>No HTTPS, client or server, ever.</td>
+          <td>None. LAN-only plain HTTP is fine — file inputs and form POST work over insecure origins; only camera and geolocation APIs would not.</td>
+          <td><span class="chip w">Scoped out</span></td>
+        </tr>
+        <tr>
+          <td class="k">Memory mapping<br><span class="mono" style="font-weight:400;color:var(--muted)">no mmap</span></td>
+          <td>Large-file random access must go through seek and read.</td>
+          <td><code>Seek</code> plus a hand-rolled page cache. Slower than mmap; disclose the number rather than hide it.</td>
+          <td><span class="chip g">Solved</span></td>
+        </tr>
+        <tr>
+          <td class="k">File locking<br><span class="mono" style="font-weight:400;color:var(--muted)">no flock</span></td>
+          <td>Two instances could corrupt the index.</td>
+          <td>Lockfile via <code>OpenOptions::create_new(true)</code>, which is atomic on every supported platform. Stale-lock detection by PID.</td>
+          <td><span class="chip g">Solved</span></td>
+        </tr>
+        <tr>
+          <td class="k">Calendar time</td>
+          <td><code>SystemTime</code> gives you seconds since epoch and nothing else — no dates, no formatting, no timezones.</td>
+          <td>Howard Hinnant's days-from-civil algorithm, about forty lines, converts both directions exactly. EXIF already stores local wall-clock time, so no timezone database is needed here.</td>
+          <td><span class="chip g">Solved</span></td>
+        </tr>
+        <tr>
+          <td class="k">Crypto and compression</td>
+          <td>No hashing, no DEFLATE, no zlib.</td>
+          <td>Implement them. CRC32 and DEFLATE are required for PNG regardless, and both are short, frozen, and trivially verifiable against any existing decoder.</td>
+          <td><span class="chip g">Solved — and it's the point</span></td>
+        </tr>
+        <tr>
+          <td class="k">Raw terminal input</td>
+          <td>No termios, no console API.</td>
+          <td>Not needed. The interface is a browser; the terminal only prints.</td>
+          <td><span class="chip g">Not applicable</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="col">
+    <div class="callout"><b>One footgun worth naming now.</b> <code>std::hash::DefaultHasher</code> is explicitly documented as <em>not stable across Rust releases</em>. Never persist its output to disk — an index written by one toolchain would silently fail to match after an upgrade. Write your own FNV-1a for the on-disk index. Four lines, and it removes an entire class of "why is my cache broken" bug.</div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">02</span><h2>The thing I will not promise</h2></div>
+  <div class="banner red" style="margin-top:0">
+    <p class="eyebrow" style="color:var(--crit)">Out of scope, permanently</p>
+    <h3>HEIC / HEIF pixel decoding. Do not attempt it.</h3>
+    <p style="color:var(--ink-2)">The HEIF container is trivial — ISOBMFF boxes, an afternoon. The image inside it is <strong>HEVC intra-coded</strong>, and decoding that means CABAC arithmetic entropy decoding, quadtree CTU partitioning, thirty-five intra prediction modes, four transform sizes, the deblocking filter, and sample-adaptive offset. It is many thousands of lines of bit-exact, subtly-wrong-in-silence code, and it is precisely the kind of subsystem that consumes a weekend and produces grey mush.</p>
+    <p style="color:var(--ink-2);margin-top:10px"><strong>This is the honest limitation of the photo-library idea, and you should know it before you commit, not after.</strong> If a judge points darkroom at an iPhone library shot in High Efficiency mode, the pixels will not decode.</p>
+    <p style="color:var(--ink-2);margin-top:10px"><strong>Mitigation, which is real:</strong> the container is parseable, so HEIC files are still <em>catalogued</em> — date, camera, dimensions, and GPS all read correctly from the <code>meta</code> box, and the file appears in the timeline with an explicit "preview unavailable — HEVC" placeholder rather than vanishing. Combined with a README that states the boundary and explains why, this reads as engineering judgment. Silently dropping the files would read as a bug.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">03</span><h2>The build, module by module</h2></div>
+  <div class="col">
+    <p>Every row names the specification it implements and the external oracle that proves it. "Oracle" means software you did not write that independently confirms your output is correct — the thing that makes this verifiable rather than hopeful.</p>
+  </div>
+  <div class="scroller" style="margin-top:18px">
+    <table>
+      <thead><tr><th>Module</th><th>Specification</th><th style="text-align:right">LOC</th><th>External oracle</th><th>Risk</th></tr></thead>
+      <tbody>
+        <tr><td class="k"><span class="mono">jpeg</span> decode, baseline</td><td>ITU-T T.81 / JFIF</td><td class="num">1,000</td><td>Re-encode to PNG, open beside the original in any viewer. Pixel-diff against a browser-rendered canvas.</td><td><span class="chip w">Medium</span></td></tr>
+        <tr><td class="k"><span class="mono">jpeg</span> decode, progressive</td><td>ITU-T T.81 §G</td><td class="num">450</td><td>Same. Progressive files are common on the web, so real-world coverage jumps.</td><td><span class="chip w">Medium</span></td></tr>
+        <tr><td class="k"><span class="mono">jpeg</span> encode</td><td>ITU-T T.81</td><td class="num">700</td><td>Every image viewer on earth. If it opens, you are right.</td><td><span class="chip g">Low</span></td></tr>
+        <tr><td class="k"><span class="mono">deflate</span> inflate + deflate</td><td>RFC 1951, RFC 1950</td><td class="num">900</td><td>Round-trip against <code>gunzip</code>; your output must decompress with real tools.</td><td><span class="chip g">Low</span></td></tr>
+        <tr><td class="k"><span class="mono">png</span> decode + encode</td><td>RFC 2083 — all filters, interlace, CRC32</td><td class="num">700</td><td>PngSuite, the public conformance corpus, including its deliberately corrupt files. Test data, not a dependency.</td><td><span class="chip g">Low</span></td></tr>
+        <tr><td class="k"><span class="mono">gif</span> decode</td><td>GIF89a — LZW</td><td class="num">350</td><td>Any browser.</td><td><span class="chip g">Low</span></td></tr>
+        <tr><td class="k"><span class="mono">exif</span> TIFF IFD parser</td><td>CIPA DC-008 (Exif 2.32)</td><td class="num">500</td><td>Your operating system's photo info panel. Compare field by field.</td><td><span class="chip g">Low</span></td></tr>
+        <tr><td class="k"><span class="mono">resample</span> box, bilinear, Lanczos</td><td>Standard signal processing</td><td class="num">400</td><td>Visual inspection against a browser's own downscaling.</td><td><span class="chip g">Low</span></td></tr>
+        <tr><td class="k"><span class="mono">phash</span> dHash, DCT pHash, clustering</td><td>Published perceptual-hash literature</td><td class="num">500</td><td>Build a fixture set — same photo at three resolutions, two crops, one re-encode — and assert the clustering.</td><td><span class="chip g">Low</span></td></tr>
+        <tr><td class="k"><span class="mono">qr</span> encode + Reed–Solomon</td><td>ISO/IEC 18004</td><td class="num">600</td><td><strong>Any phone.</strong> The most decisive oracle in the project: it scans or it doesn't.</td><td><span class="chip g">Low</span></td></tr>
+        <tr><td class="k"><span class="mono">http</span> server, keep-alive, ranges</td><td>RFC 9110, RFC 9112</td><td class="num">900</td><td>Real browsers, including a phone browser seeking inside a large file.</td><td><span class="chip g">Low</span></td></tr>
+        <tr><td class="k"><span class="mono">pool</span> thread pool + job queue</td><td>—</td><td class="num">250</td><td>Your own stress test. Documented honestly as the concurrency model.</td><td><span class="chip g">Low</span></td></tr>
+        <tr><td class="k"><span class="mono">index</span> crash-safe on-disk catalog</td><td>Your own format, documented</td><td class="num">600</td><td>Kill the process mid-write, restart, assert the catalog is intact.</td><td><span class="chip w">Medium</span></td></tr>
+        <tr><td class="k"><span class="mono">web</span> embedded client</td><td>HTML/CSS/JS, no framework</td><td class="num">700</td><td>Phones and desktops. Ships inside the binary via <code>include_str!</code>.</td><td><span class="chip g">Low</span></td></tr>
+        <tr><td class="k"><span class="mono">cli</span> argument parsing, exit codes</td><td>—</td><td class="num">300</td><td>—</td><td><span class="chip g">Low</span></td></tr>
+      </tbody>
+      <tfoot><tr><td colspan="2">Core implementation</td><td class="num">7,750</td><td colspan="2">plus ~2,000 lines of tests</td></tr></tfoot>
+    </table>
+  </div>
+  <div class="col">
+    <p style="margin-top:16px">Two modules carry medium risk, and neither can strand you. <strong>JPEG decode</strong> is fiddly rather than uncertain — thousands of engineers have written one from this exact document, and a wrong implementation shows you a visibly broken image within seconds rather than failing mysteriously. <strong>The crash-safe index</strong> is a design problem with a known answer: write to a temporary file, <code>sync_all()</code>, then rename, which is atomic on every platform std supports.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">04</span><h2>Coverage against every scoring front</h2></div>
+  <div class="grid2">
+    <div class="card"><span class="tag">Functionality · 35%</span><h3>A tool with a second day</h3><p>One command, no configuration, no container. It answers a question people genuinely have — <em>which of these forty thousand photos are the same photo?</em> — and it stays installed afterwards. Reachable from any device on the network without an account.</p></div>
+    <div class="card"><span class="tag">Zero-dep craft · 30%</span><h3>Twelve substitutions, none padded</h3><p>Two image codecs, DEFLATE, CRC32, EXIF, resampling, perceptual hashing, Reed–Solomon, an HTTP server, a thread pool replacing rayon, OS entropy without an RNG crate, and a calendar without a date crate. Every one algorithmic rather than glue.</p></div>
+    <div class="card"><span class="tag">Code quality · 25%</span><h3>Seams enforced from hour one</h3><p>Fifteen modules with no cross-reaching: codecs know nothing of HTTP, HTTP knows nothing of hashing. Each independently testable. This is the criterion sprawl threatens, so the module boundary is a design constraint, not a cleanup task.</p></div>
+    <div class="card"><span class="tag">Innovation · 10%</span><h3>The lid-lifting moment</h3><p>A friendly photo gallery that turns out to contain a hand-written JPEG decoder. The gap between what it looks like and what it is <em>is</em> the innovation score.</p></div>
+    <div class="card"><span class="tag">Bonus · Reproducible Build +5</span><h3>Claim it</h3><p>Pin the toolchain, <code>--remap-path-prefix</code>, incremental off, build twice, publish both SHA-256 hashes, and state the envelope: same machine, same toolchain version. Roughly three hours for the highest points-per-hour item at the event.</p></div>
+    <div class="card"><span class="tag">Bonus · STDLIB Log +3</span><h3>Claim it</h3><p>Twelve non-trivial substitutions with rationales, and the same document feeds the 30% criterion. You are writing it either way.</p></div>
+    <div class="card"><span class="tag">Bonus · Package Killer +3</span><h3>Claim it</h3><p><code>sharp</code> at roughly 7M weekly downloads leads, with <code>qrcode</code> near 3M and <code>exifread</code>, <code>imagehash</code>, and the whole <code>tokio</code>/<code>axum</code> server stack behind them.</p></div>
+    <div class="card"><span class="tag">Bonus · Single File +5</span><h3>Skip it</h3><p>At 7,750 lines a single file is a stunt that costs you inside the 25% criterion to buy points in a bonus. It also directly opposes maximising implementation. Bad trade — take the other three.</p></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">05</span><h2>Verified on the build machine, not just researched</h2></div>
+  <div class="col">
+    <p>Everything above was an argument from specifications. On 16 August the machine itself was checked, twelve days early. <strong>Four blockers surfaced, none of them about darkroom</strong> — and every one would have cost hours at kickoff.</p>
+  </div>
+  <div class="scroller" style="margin-top:18px">
+    <table>
+      <thead><tr><th>Found</th><th>Impact if discovered at kickoff</th><th>Resolution</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Rust not installed</td><td>An hour of the first night gone.</td><td><span class="chip g">Installed</span></td></tr>
+        <tr><td class="k">C: had 0.3 GB free of 225 GB</td><td>Toolchain install died outright with <code>os error 112</code>. At that level Windows itself misbehaves.</td><td><span class="chip w">Rust relocated to D: · free real space before kickoff</span></td></tr>
+        <tr><td class="k">No MSVC linker</td><td><strong>Rust could not compile hello-world.</strong> The fix needs several GB on a disk that had none.</td><td><span class="chip g">GNU target — ships its own linker</span></td></tr>
+        <tr><td class="k">Reproducible build failed</td><td>Silent loss of the +5 bonus, discovered at hour 68 with no time to diagnose.</td><td><span class="chip g">Solved — recipe below</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="col">
+    <div class="callout"><b>The bonus was not free.</b> Two clean builds with the textbook flags — pinned toolchain, <code>--remap-path-prefix</code>, incremental off — produced <em>different binaries</em>. The MinGW linker stamps a timestamp into the PE header. Adding <code>-Clink-arg=-Wl,--no-insert-timestamp</code> made two clean builds byte-identical: <span class="mono">E2644016…866EAA56</span> twice. Determinism has to be hunted for; it is not a checkbox.</div>
+    <div class="callout" style="border-left-color:var(--good)"><b>And one finding that validated a design decision.</b> The machine reports <strong>seven non-loopback IPv4 interfaces, six of them <code>169.254.x.x</code> link-local junk</strong>. The obvious way to find your own address — enumerate interfaces, take the first non-loopback — would have printed a QR code pointing at a dead address. The UDP-connect trick, which is the only option Rust's standard library leaves open, returns the Wi-Fi address correctly. The constraint did not force a worse solution here; it forced the right one.</div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">06</span><h2>Demo logistics that can still ruin it</h2></div>
+  <div class="col">
+    <p>None of these are engineering risks. All of them have ended demos.</p>
+    <ul class="tight">
+      <li><strong>Access-point isolation.</strong> Guest and corporate Wi-Fi frequently block client-to-client traffic, so the phone cannot reach the laptop no matter how correct your server is. Record on a home network or a phone hotspot, and test it the day before, not the hour before.</li>
+      <li><strong>The firewall prompt.</strong> Windows will interrupt the first bind to <code>0.0.0.0</code> with a dialog. Accept it once before recording.</li>
+      <li><strong>Terminal QR contrast.</strong> Render with explicit ANSI background colours rather than relying on the terminal's own theme, and also write <code>qr.png</code> to disk. Two paths to the same code costs nothing and removes a single point of failure from the most important beat in the video.</li>
+      <li><strong>Photo set.</strong> Curate the demo folder in advance so the duplicate count is real and impressive. Include a genuine near-duplicate pair — the same shot at two resolutions — because exact duplicates are unremarkable and near-duplicates are the thing people cannot do themselves.</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  Buildability audit · every specification cited is public, frozen, and freely available · prepared 2026-08-16 · pre-kickoff planning, not code
+</footer>
+
+</div>

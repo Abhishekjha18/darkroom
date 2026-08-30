@@ -1,0 +1,338 @@
+<title>Empty Manifest Dossier</title>
+<style>
+  :root {
+    --paper:#F3F5F7; --surface:#FFFFFF; --surface-2:#EDF0F3;
+    --ink:#161B23; --ink-2:#38424F; --muted:#5E6976; --faint:#8A94A1;
+    --rule:#D7DCE3; --rule-strong:#BFC7D1;
+    --accent:#8A6115; --accent-soft:#B98B2A; --accent-wash:#F0E7D4;
+    --good:#1B6A55; --warn:#8A6410; --crit:#9E3A28;
+    --good-wash:#DDEDE7; --warn-wash:#F4E9CF; --crit-wash:#F6DFD9;
+    --shadow:0 1px 2px rgba(22,27,35,.05), 0 8px 24px -12px rgba(22,27,35,.18);
+    --display:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+    --body:-apple-system,BlinkMacSystemFont,"Segoe UI Variable Text","Segoe UI",Roboto,system-ui,sans-serif;
+    --mono:ui-monospace,"Cascadia Mono","Cascadia Code",Consolas,"SF Mono",Menlo,monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:#11151B; --surface:#171D25; --surface-2:#1D242E;
+      --ink:#E5E9EF; --ink-2:#C2CAD4; --muted:#95A0AE; --faint:#6E7987;
+      --rule:#27303B; --rule-strong:#3A4554;
+      --accent:#D9A441; --accent-soft:#B9862F; --accent-wash:#2B2317;
+      --good:#4FB093; --warn:#D9A441; --crit:#E07E68;
+      --good-wash:#15302A; --warn-wash:#2B2317; --crit-wash:#331F1A;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:#11151B; --surface:#171D25; --surface-2:#1D242E;
+    --ink:#E5E9EF; --ink-2:#C2CAD4; --muted:#95A0AE; --faint:#6E7987;
+    --rule:#27303B; --rule-strong:#3A4554;
+    --accent:#D9A441; --accent-soft:#B9862F; --accent-wash:#2B2317;
+    --good:#4FB093; --warn:#D9A441; --crit:#E07E68;
+    --good-wash:#15302A; --warn-wash:#2B2317; --crit-wash:#331F1A;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+
+  * { box-sizing:border-box; }
+  body {
+    background:var(--paper); color:var(--ink); font-family:var(--body);
+    font-size:16.5px; line-height:1.62; margin:0;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap { max-width:1180px; margin:0 auto; padding:0 clamp(18px,4vw,48px) 96px; }
+  .col { max-width:68ch; }
+
+  h1,h2,h3 { font-family:var(--display); font-weight:600; text-wrap:balance; letter-spacing:-.01em; }
+  h1 { font-size:clamp(2.1rem,5vw,3.1rem); line-height:1.08; margin:.1em 0 .3em; }
+  h2 { font-size:clamp(1.5rem,3vw,2rem); line-height:1.15; margin:0 0 .5rem; }
+  h3 { font-size:1.15rem; line-height:1.3; margin:0 0 .35rem; }
+  p { margin:0 0 1rem; }
+  a { color:var(--accent); }
+  strong { font-weight:640; color:var(--ink); }
+  code, .mono { font-family:var(--mono); font-size:.88em; }
+  code { background:var(--surface-2); padding:.1em .35em; border-radius:3px; }
+
+  .eyebrow {
+    font-family:var(--mono); font-size:.7rem; letter-spacing:.16em;
+    text-transform:uppercase; color:var(--faint); margin:0 0 .5rem;
+  }
+
+  header.mast { padding:clamp(40px,7vw,76px) 0 28px; border-bottom:1px solid var(--rule); }
+  .standfirst { font-size:1.12rem; color:var(--ink-2); max-width:62ch; }
+  .meta {
+    display:flex; flex-wrap:wrap; gap:6px 22px; margin-top:20px;
+    font-family:var(--mono); font-size:.75rem; color:var(--muted);
+  }
+
+  section { padding-top:clamp(44px,6vw,68px); }
+  .sec-head { display:flex; align-items:baseline; gap:14px; margin-bottom:18px; }
+  .sec-num { font-family:var(--mono); font-size:.75rem; color:var(--accent); letter-spacing:.1em; }
+
+  .verdict {
+    margin-top:28px; background:var(--surface); border:1px solid var(--rule);
+    border-left:3px solid var(--accent); border-radius:4px;
+    padding:clamp(20px,3vw,30px); box-shadow:var(--shadow);
+  }
+  .verdict .pick { font-family:var(--display); font-size:clamp(1.5rem,3.4vw,2.05rem); line-height:1.15; margin:.15rem 0 .5rem; }
+  .verdict .pick .name { color:var(--accent); }
+  .vgrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1px; background:var(--rule); border:1px solid var(--rule); border-radius:4px; margin-top:22px; }
+  .vcell { background:var(--surface); padding:13px 15px; }
+  .vcell .k { font-family:var(--mono); font-size:.66rem; letter-spacing:.13em; text-transform:uppercase; color:var(--faint); }
+  .vcell .v { font-family:var(--mono); font-size:1.02rem; color:var(--ink); font-variant-numeric:tabular-nums; margin-top:3px; }
+
+  .scroller { overflow-x:auto; border:1px solid var(--rule); border-radius:4px; background:var(--surface); }
+  table { border-collapse:collapse; width:100%; font-size:.845rem; }
+  th, td { padding:8px 11px; text-align:left; border-bottom:1px solid var(--rule); white-space:nowrap; }
+  thead th {
+    font-family:var(--mono); font-size:.66rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--faint); font-weight:500; background:var(--surface-2);
+    position:sticky; top:0; border-bottom:1px solid var(--rule-strong);
+  }
+  tbody tr:last-child td { border-bottom:none; }
+  td.num { font-family:var(--mono); font-variant-numeric:tabular-nums; text-align:right; color:var(--ink-2); }
+  td.idea { font-weight:620; }
+  td.idea .cli { font-family:var(--mono); font-size:.9em; color:var(--accent); }
+  td.note { white-space:normal; color:var(--muted); font-size:.92em; min-width:230px; }
+  tr.top td { background:var(--accent-wash); }
+  tr.top td.num.index { color:var(--accent); font-weight:700; }
+  td.drop { color:var(--crit); }
+  td.rise { color:var(--good); }
+
+  .chip {
+    display:inline-block; font-family:var(--mono); font-size:.66rem; letter-spacing:.06em;
+    padding:2px 7px; border-radius:100px; text-transform:uppercase;
+  }
+  .chip.g { background:var(--good-wash); color:var(--good); }
+  .chip.w { background:var(--warn-wash); color:var(--warn); }
+  .chip.c { background:var(--crit-wash); color:var(--crit); }
+  .chip.n { background:var(--surface-2); color:var(--muted); }
+
+  .finalists { display:grid; gap:20px; }
+  .card { background:var(--surface); border:1px solid var(--rule); border-radius:4px; padding:clamp(18px,2.6vw,26px); }
+  .card-top { display:flex; flex-wrap:wrap; gap:12px 18px; align-items:baseline; justify-content:space-between; margin-bottom:10px; }
+  .rankno { font-family:var(--mono); font-size:.72rem; color:var(--accent); letter-spacing:.12em; }
+  .idx { font-family:var(--mono); font-size:1.45rem; font-variant-numeric:tabular-nums; color:var(--ink); }
+  .idx span { font-size:.62rem; color:var(--faint); letter-spacing:.1em; text-transform:uppercase; display:block; text-align:right; }
+  .bars { display:grid; gap:7px; margin:16px 0 4px; max-width:460px; }
+  .bar { display:grid; grid-template-columns:118px 1fr 34px; align-items:center; gap:10px; }
+  .bar .lbl { font-family:var(--mono); font-size:.66rem; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); }
+  .bar .track { height:6px; background:var(--surface-2); border-radius:100px; overflow:hidden; }
+  .bar .fill { height:100%; background:var(--accent-soft); border-radius:100px; }
+  .bar .val { font-family:var(--mono); font-size:.75rem; color:var(--ink-2); font-variant-numeric:tabular-nums; text-align:right; }
+  .kv { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px 26px; margin-top:16px; padding-top:16px; border-top:1px solid var(--rule); }
+  .kv div { font-size:.9rem; color:var(--ink-2); }
+  .kv b { display:block; font-family:var(--mono); font-size:.64rem; letter-spacing:.12em; text-transform:uppercase; color:var(--faint); font-weight:500; margin-bottom:2px; }
+
+  ol.ladder { list-style:none; counter-reset:step; padding:0; margin:0; display:grid; gap:2px; }
+  ol.ladder li {
+    counter-increment:step; background:var(--surface); border:1px solid var(--rule);
+    padding:14px 18px 14px 74px; position:relative;
+  }
+  ol.ladder li::before {
+    content:attr(data-h); position:absolute; left:14px; top:14px;
+    font-family:var(--mono); font-size:.7rem; color:var(--accent);
+  }
+  ol.ladder li b { display:block; margin-bottom:2px; }
+  ol.ladder li span { color:var(--muted); font-size:.92rem; }
+
+  ol.beats { padding-left:1.1em; margin:0; display:grid; gap:10px; }
+  ol.beats li { padding-left:6px; }
+  ol.beats b { color:var(--ink); }
+  ol.beats span { color:var(--muted); }
+
+  ul.tight { padding-left:1.15em; margin:0 0 1rem; }
+  ul.tight li { margin-bottom:.42rem; }
+
+  .callout {
+    background:var(--surface); border:1px solid var(--rule); border-left:3px solid var(--warn);
+    border-radius:4px; padding:16px 20px; margin:20px 0; font-size:.95rem; color:var(--ink-2);
+  }
+  .callout b { color:var(--ink); }
+
+  footer { margin-top:72px; padding-top:22px; border-top:1px solid var(--rule); color:var(--faint); font-family:var(--mono); font-size:.72rem; }
+  @media (max-width:620px){ .bar { grid-template-columns:96px 1fr 30px; } }
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Zero Dependency · 72 hours · solo entry · revision 2</p>
+  <h1>Empty Manifest Dossier</h1>
+  <p class="standfirst">Thirty-two candidate builds, scored against the published rubric, the four bonus challenges, and the unpublished factors that decide hackathons anyway — now with demo strength promoted from tiebreaker to multiplier, which changes the answer.</p>
+  <div class="meta">
+    <span>Kickoff 2026-08-28 18:00 UTC</span>
+    <span>Freeze 2026-08-31 18:00 UTC</span>
+    <span>Language assumption: Rust</span>
+  </div>
+</header>
+
+<div class="verdict">
+  <p class="eyebrow">The recommendation, revised</p>
+  <p class="pick">Build <span class="name">darkroom</span> — a self-hosted photo library and duplicate finder, browsable from your phone by scanning a QR code the terminal prints.</p>
+  <p style="margin:0;color:var(--ink-2);max-width:66ch">It carries the most implementation of anything with a defensible completion probability, it is the only candidate a non-programmer would install, and its demo is the one a judge <em>participates in</em> rather than watches. Enter under <strong>Track F</strong>.</p>
+  <div class="vgrid">
+    <div class="vcell"><div class="k">Final index</div><div class="v">4.70 <span style="color:var(--faint);font-size:.72rem">/ 5</span></div></div>
+    <div class="vcell"><div class="k">Rubric core</div><div class="v">4.70</div></div>
+    <div class="vcell"><div class="k">Est. substantive</div><div class="v">5–6k LOC</div></div>
+    <div class="vcell"><div class="k">Ship confidence</div><div class="v">80%</div></div>
+    <div class="vcell"><div class="k">Demo</div><div class="v">5.0</div></div>
+  </div>
+</div>
+
+<section>
+  <div class="sec-head"><span class="sec-num">01</span><h2>How the scoring works</h2></div>
+  <div class="col">
+    <p>The published rubric is four criteria on a 5-point scale: <strong>Functionality &amp; Usefulness 35%</strong>, <strong>Zero-Dependency Craft 30%</strong>, <strong>Code Quality &amp; Idiom 25%</strong>, <strong>Innovation 10%</strong>. That weighted average is the <em>Core</em> column, and it is the only number the judges actually compute.</p>
+    <p>Core alone is a bad decision tool, because it prices a project you finish identically to one you don't. Four multipliers correct for that:</p>
+    <ul class="tight">
+      <li><strong>Ship confidence</strong> — probability of landing a strong, complete artifact solo in 72 hours. Applied directly: an unfinished submission scores near zero on the 35% criterion regardless of how good the idea was.</li>
+      <li><strong>Demo strength</strong> — <em>revised upward in this pass.</em> The five-minute video is a required deliverable and it is where a judge forms their impression of Functionality before reading any code. Weighting it as a tiebreaker was wrong. ±10%.</li>
+      <li><strong>Depth</strong> — reward for more implementation. Estimated substantive lines, banded, ±8%. Deliberately gentle: volume is <em>evidence</em> of craft, not a judged criterion, and past a point it converts into risk rather than score.</li>
+      <li><strong>Crowding</strong> — how many other entrants build something recognisably similar. Being the fortieth hand-rolled parser costs real Innovation points; being the only photo tool earns them. ±5%.</li>
+    </ul>
+    <p class="mono" style="font-size:.85rem;color:var(--muted);background:var(--surface-2);padding:12px 14px;border-radius:4px">Index = (0.35·U + 0.30·C + 0.25·Q + 0.10·I) × Ship × Demo × Depth × Crowding</p>
+    <div class="callout"><b>On false precision.</b> These are judgments encoded as numbers, not measurements. Two decimals make the ranking legible, not authoritative — treat anything inside ±0.15 as a tie and decide on taste.</div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">02</span><h2>What promoting the demo changes</h2></div>
+  <div class="col">
+    <p>Demo strength was previously a footnote in the notes column. Applied as a multiplier, it reorders the top of the board — and it demotes the previous recommendation, because a beautifully typeset PDF is a genuinely undramatic thing to film.</p>
+  </div>
+  <div class="scroller" style="margin-top:18px">
+    <table>
+      <thead><tr><th>Idea</th><th style="text-align:right">Demo</th><th style="text-align:right">Old index</th><th style="text-align:right">New index</th><th style="text-align:right">Δ</th><th>What the judge actually sees</th></tr></thead>
+      <tbody>
+        <tr class="top"><td class="idea"><span class="cli">darkroom</span> · photos + QR</td><td class="num">5.0</td><td class="num">4.32</td><td class="num index">4.70</td><td class="num rise">▲ 2</td><td class="note">Scans a QR with their own phone, browses your photo library, watches 1,300 duplicates surface.</td></tr>
+        <tr class="top"><td class="idea"><span class="cli">zdrop</span> · phone↔laptop</td><td class="num">5.0</td><td class="num">4.29</td><td class="num index">4.72</td><td class="num rise">▲ 2</td><td class="note">Same QR moment, without the library behind it. Highest demo, lowest code of the top five.</td></tr>
+        <tr><td class="idea"><span class="cli">zredis</span> · RESP server</td><td class="num">4.5</td><td class="num">4.28</td><td class="num index">4.49</td><td class="num rise">▲ 2</td><td class="note"><code>redis-cli ping</code> → <code>PONG</code>. Satisfying, instantly legible to an engineer, over in ten seconds.</td></tr>
+        <tr><td class="idea"><span class="cli">pry</span> · universal opener</td><td class="num">4.5</td><td class="num">4.14</td><td class="num index">4.35</td><td class="num rise">▲ 3</td><td class="note">Rapid-fire montage: xlsx → csv, pdf → text, sqlite → dump, all one binary.</td></tr>
+        <tr><td class="idea"><span class="cli">galley</span> · MD→PDF</td><td class="num">3.5</td><td class="num">4.61</td><td class="num index">4.33</td><td class="num drop">▼ 4</td><td class="note">A PDF opens. It looks nice. That is the whole beat — the craft is invisible on camera.</td></tr>
+        <tr><td class="idea"><span class="cli">gx</span> · git X-ray</td><td class="num">4.0</td><td class="num">4.24</td><td class="num index">4.24</td><td class="num">—</td><td class="note">Informative terminal output in the judge's own repo. Static, but it tells them something true.</td></tr>
+        <tr><td class="idea"><span class="cli">anyfmt</span> · 6 parsers</td><td class="num">3.5</td><td class="num">4.39</td><td class="num index">4.13</td><td class="num drop">▼ 5</td><td class="note">A file becomes a different file. Nothing to watch.</td></tr>
+        <tr><td class="idea"><span class="cli">gitd</span> · git server</td><td class="num">5.0</td><td class="num">3.70</td><td class="num index">4.07</td><td class="num rise">▲ 5</td><td class="note"><code>git clone http://localhost:8080/repo</code> succeeds. Elite for engineers, meaningless to anyone else.</td></tr>
+        <tr><td class="idea"><span class="cli">zdns</span> · resolver</td><td class="num">4.5</td><td class="num">3.78</td><td class="num index">3.97</td><td class="num rise">▲ 2</td><td class="note">Ads vanish from a real page. Strong, but the setup eats a minute of your five.</td></tr>
+        <tr><td class="idea"><span class="cli">zchart</span> · CSV→PNG</td><td class="num">4.5</td><td class="num">3.72</td><td class="num index">3.91</td><td class="num rise">▲ 2</td><td class="note">Data goes in, a chart image comes out. Good beat, thin project.</td></tr>
+        <tr><td class="idea"><span class="cli">depaudit</span> · dep auditor</td><td class="num">4.0</td><td class="num">3.91</td><td class="num index">3.91</td><td class="num">—</td><td class="note">Finds a phantom import in a real repo. Lands hard with this specific audience.</td></tr>
+        <tr><td class="idea"><span class="cli">zbt</span> · BitTorrent</td><td class="num">5.0</td><td class="num">2.72</td><td class="num index">2.99</td><td class="num rise">▲ 3</td><td class="note">Best demo on the board, staked on a live swarm and the venue's network. Still not worth 60% ship odds.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="col" style="margin-top:14px;font-size:.9rem;color:var(--muted)">Δ is movement in overall rank against the full 32-candidate table. Everything not listed moved by less than two places.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">03</span><h2>darkroom versus zdrop</h2></div>
+  <div class="col">
+    <p>These two finish 0.02 apart, which is a tie. They share a demo moment — the QR code, the phone, the LAN — because <strong>darkroom absorbs zdrop's best trick for about 400 lines of code.</strong> The QR encodes <code>http://192.168.x.x:8080</code>; no service discovery protocol is required at all, so the fusion costs you a Reed–Solomon encoder and a mask-selection pass, and nothing else.</p>
+    <p>What separates them is everything behind the QR code.</p>
+  </div>
+  <div class="finalists" style="margin-top:22px">
+
+    <article class="card">
+      <div class="card-top">
+        <div><span class="rankno">THE PICK</span><h3 style="margin-top:4px"><span class="mono" style="color:var(--accent)">darkroom</span> — photo library, duplicate finder, phone client</h3></div>
+        <div class="idx">4.70<span>index</span></div>
+      </div>
+      <p>Point it at the messy photo folder everyone has. It decodes, thumbnails, reads capture dates and orientation, finds exact <em>and near-duplicate</em> images, and serves the whole thing to any browser on your network. No Docker, no account, no cloud, nothing leaves the machine.</p>
+      <div class="bars">
+        <div class="bar"><span class="lbl">Usefulness</span><span class="track"><span class="fill" style="width:100%"></span></span><span class="val">5.0</span></div>
+        <div class="bar"><span class="lbl">Zero-dep craft</span><span class="track"><span class="fill" style="width:100%"></span></span><span class="val">5.0</span></div>
+        <div class="bar"><span class="lbl">Code quality</span><span class="track"><span class="fill" style="width:80%"></span></span><span class="val">4.0</span></div>
+        <div class="bar"><span class="lbl">Innovation</span><span class="track"><span class="fill" style="width:90%"></span></span><span class="val">4.5</span></div>
+      </div>
+      <div class="kv">
+        <div><b>Load-bearing hard parts</b>Baseline JPEG decode (Huffman + IDCT + YCbCr) · PNG encode (DEFLATE + CRC32) · image resampling · EXIF/TIFF IFD parsing · DCT-based perceptual hashing and clustering · concurrent HTTP server with range requests · QR generation with Reed–Solomon ECC · a thread-pool the judge can read</div>
+        <div><b>Kills</b>sharp (~7M/wk) · Pillow · libvips · image · exifread · imagehash · qrcode (~3M/wk) · tokio · axum · rayon · walkdir · flate2</div>
+        <div><b>Why it beats zdrop</b>Roughly twice the implementation, a permanent reason to keep it installed, and a second emotional beat — the duplicate count — that a pure transfer tool has no way to produce.</div>
+        <div><b>Where it's weaker</b>Code Quality drops half a point against a single-pipeline project: five loosely-coupled subsystems sprawl more easily, and sprawl is exactly what a senior reviewer notices.</div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-top">
+        <div><span class="rankno">THE ALTERNATE</span><h3 style="margin-top:4px"><span class="mono" style="color:var(--accent)">zdrop</span> — LAN file transfer, no cloud, no account</h3></div>
+        <div class="idx">4.72<span>index</span></div>
+      </div>
+      <p>The purest version of the same demo, and marginally ahead on the raw index because it is far more likely to finish. Take it if you would rather trade implementation depth for near-certainty — it is the same five minutes of video with two-thirds of the risk.</p>
+      <div class="kv">
+        <div><b>The honest trade</b>~3k lines against darkroom's ~5.5k, 88% ship confidence against 80%, and no answer to "what does it do the second day?" A transfer tool is used and closed; a photo library is opened again.</div>
+        <div><b>Fallback route</b>If darkroom's JPEG decoder is fighting you at hour 30, <em>zdrop is what darkroom degrades into</em>. The HTTP server, the QR encoder, and the browser client are already built. That makes this alternate a safety net rather than a competing choice.</div>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">04</span><h2>The five minutes, storyboarded</h2></div>
+  <div class="col">
+    <p>Since the demo is the deciding artifact, design it first and build backwards from it. This is the running order, and every rung of the build ladder below exists to serve a beat in it.</p>
+  </div>
+  <ol class="beats" style="margin-top:18px">
+    <li><b>0:00 — The manifest, first.</b> <span><code>cat Cargo.toml</code>. Eleven lines, <code>[dependencies]</code> empty. Then <code>cargo tree</code>, showing one node. Get the receipt out of the way in twenty seconds so the rest of the video is product.</span></li>
+    <li><b>0:20 — One command.</b> <span><code>cargo build --release</code>, then <code>darkroom ~/Pictures</code>. A QR code draws itself in the terminal.</span></li>
+    <li><b>0:50 — The phone.</b> <span>Physically pick up a phone, scan the code on screen, and let the gallery load on the handset. No app, no login, no internet. This is the beat people will remember.</span></li>
+    <li><b>1:40 — The payload.</b> <span>"You have 1,300 duplicate photos and 400 near-duplicates." Open the review view, show two visually identical shots at different resolutions sitting side by side, and reclaim four gigabytes on camera.</span></li>
+    <li><b>2:40 — Lift the lid.</b> <span>Show the JPEG decoder, the IDCT, the perceptual hash. State plainly that the browser is not decoding these thumbnails — you are. This is where the 30% Craft score is won.</span></li>
+    <li><b>3:40 — The receipts.</b> <span>Build it twice, diff the two SHA-256 hashes, show them identical. Scroll STDLIB.md past twelve substitutions.</span></li>
+    <li><b>4:30 — Honest limits.</b> <span>Baseline JPEG only, no progressive. No HEIC. Naive resampling. Say it out loud — the rules explicitly reward disclosed shortcomings over concealed ones, and volunteering them reads as confidence.</span></li>
+  </ol>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">05</span><h2>Why it survives contact with the clock</h2></div>
+  <div class="col">
+    <p>80% ship confidence on a 5,500-line project rests on one structural fact: <strong>a working, submittable artifact exists at every rung.</strong> You never trade "finished but small" against "ambitious but broken" — you climb until the clock stops and ship the rung you reached. Note what rung one does <em>not</em> require: any image decoding at all, because the browser decodes originals perfectly well on its own.</p>
+  </div>
+  <ol class="ladder">
+    <li data-h="H+08"><b>Folder walk, HTTP server, browser grid</b><span>Serve originals straight to the browser, CSS-sized. Concurrent connections via a thread pool. <em>You now have a submittable tool</em> and zero image code has been written.</span></li>
+    <li data-h="H+22"><b>Baseline JPEG decode → PNG thumbnails</b><span>Huffman tables, IDCT, YCbCr conversion, box downsampling, then PNG encode via DEFLATE and CRC32. On-disk thumbnail cache. The library becomes fast, and the Craft score arrives.</span></li>
+    <li data-h="H+32"><b>EXIF / TIFF IFD parsing</b><span>Capture date, orientation, camera model, GPS. Photos rotate correctly and group into a timeline. Cheap work, disproportionate polish.</span></li>
+    <li data-h="H+44"><b>Perceptual hashing and clustering</b><span>dHash for speed, DCT-based pHash for accuracy, Hamming-distance clustering, side-by-side review, safe delete with a trash directory. <em>This is the emotional payload of the demo.</em></span></li>
+    <li data-h="H+54"><b>QR generation</b><span>Reed–Solomon error correction, mask selection, terminal block rendering. The phone beat goes live. Self-contained, well-specified, no protocol risk.</span></li>
+    <li data-h="H+62"><b>Polish</b><span>Lanczos resampling, upload-from-phone, keyboard navigation, whatever the clock allows.</span></li>
+    <li data-h="H+62→72"><b>The paperwork is not optional</b><span>README with honest limits, STDLIB.md at twelve-plus substitutions, deps-proof.txt, .zero-dep.toml, reproducible build hashes, and the video. Ten hours, reserved, not borrowed against.</span></li>
+  </ol>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">06</span><h2>The bonus challenges</h2></div>
+  <div class="col">
+    <p>"Pick one and nail it" is advice against spreading thin, not a limit on claims. Three of four are nearly free on this project. Only one demands a real sacrifice.</p>
+  </div>
+  <div class="scroller" style="margin-top:18px">
+    <table>
+      <thead><tr><th>Bonus</th><th style="text-align:right">Pts</th><th>Cost</th><th>Verdict for darkroom</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Reproducible Build</strong></td><td class="num">+5</td><td>~3 hours</td><td class="note"><span class="chip g">Claim</span> Highest points-per-hour item available, and <em>idea-independent</em> — every Rust candidate can claim it equally, so it never affects which project you pick. Pin the toolchain, pass <code>--remap-path-prefix</code>, disable incremental, build twice, publish both hashes, and document the envelope honestly: same machine, same toolchain version.</td></tr>
+        <tr><td><strong>STDLIB Log</strong></td><td class="num">+3</td><td>~2 hours</td><td class="note"><span class="chip g">Claim</span> Needs 10+ non-trivial substitutions with rationales. darkroom clears twelve without padding, and the same document feeds the 30% Craft criterion — you are writing it regardless.</td></tr>
+        <tr><td><strong>Package Killer</strong></td><td class="num">+3</td><td>~1 hour</td><td class="note"><span class="chip g">Claim</span> <code>sharp</code> at ~7M weekly downloads is the headline, with <code>qrcode</code> at ~3M behind it. Weaker than <span class="mono">anyfmt</span>'s <code>js-yaml</code> claim, stronger than most.</td></tr>
+        <tr><td><strong>Single File</strong></td><td class="num">+5</td><td>Structural</td><td class="note"><span class="chip c">Skip</span> Opposes the instruction to maximise implementation. Rust's inline <code>mod</code> blocks keep one file idiomatic to roughly 2,500 lines; at 5,500 it becomes a stunt that costs you inside the 25% Code Quality criterion to buy points in a bonus.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="col">
+    <div class="callout"><b>Scale ambiguity, flagged.</b> The rubric produces a weighted average on a 5-point scale and the bonus table awards up to +5. Those units cannot both be literal — a +5 bonus would outweigh an entire project. Plan for the conservative reading, claim everything cheap anyway, because under the aggressive reading the three free bonuses are decisive.</div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">07</span><h2>Honest counterarguments</h2></div>
+  <div class="col">
+    <ul class="tight">
+      <li><strong>A photo gallery sounds less serious than a typesetting engine.</strong> Until the judge learns you wrote the JPEG decoder. The demo must make that explicit — the "lift the lid" beat at 2:40 exists precisely to convert a friendly product into an obvious feat.</li>
+      <li><strong>Baseline JPEG decode is the whole project's crux.</strong> True. It is roughly 900–1,200 fiddly lines and it gates rungs 2 through 4. Mitigation is that rung 1 ships without it, and that progressive JPEG is explicitly out of scope and declared as such.</li>
+      <li><strong>Naive decoding will be slow on a big library.</strong> Yes, and slow is fine if it's honest. Parallelise with a hand-rolled <code>std::thread</code> worker pool — which is itself the substitution that replaces <code>rayon</code> — cache thumbnails on disk, and publish the throughput number rather than hiding it.</li>
+      <li><strong>Five subsystems risk sprawl.</strong> The real threat to the 25% criterion. Enforce clean module seams from hour one: <code>jpeg</code>, <code>png</code>, <code>exif</code>, <code>phash</code>, <code>qr</code>, <code>http</code>, <code>index</code>. Each independently testable, none reaching into another.</li>
+      <li><strong>zdrop is the safer version of this demo.</strong> Correct, and it is also the fallback — darkroom degrades into it rather than competing with it.</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  Scored against zerodepshack.com criteria as published · 32 candidates · revision 2, demo weighted · prepared 2026-08-16 · pre-kickoff planning, not code
+</footer>
+
+</div>
