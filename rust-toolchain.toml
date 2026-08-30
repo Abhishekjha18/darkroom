@@ -1,0 +1,8 @@
+# Locked 2026-08-16. GNU, not MSVC — see BUILD.md §2.
+#
+# The trap: this file resolves against the *working directory*, not
+# --manifest-path. Building from elsewhere silently falls back to the MSVC
+# host toolchain and invalidates the reproducible-build evidence. The build
+# script always passes +toolchain and --target explicitly for that reason.
+[toolchain]
+channel = "1.97.1-x86_64-pc-windows-gnu"

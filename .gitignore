@@ -1,0 +1,6 @@
+/target
+qr.png
+oracle/node_modules
+.claude/settings.local.json
+.tokensave/
+.DS_Store

@@ -1,0 +1,16 @@
+[package]
+name = "darkroom"
+version = "0.1.0"
+edition = "2024"
+description = "Point it at a folder of photos. Browse them from your phone. It finds the duplicates."
+license = "MIT"
+
+# This is the headline claim. Nothing goes here, ever.
+[dependencies]
+
+[profile.release]
+opt-level = 3
+# `panic = "abort"` would silently disable the catch_unwind at the worker
+# boundary (ARCHITECTURE.md §9), which is what keeps one bad file from
+# taking down an index of 3,000 good ones.
+panic = "unwind"
