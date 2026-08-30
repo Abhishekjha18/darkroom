@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>darkroom</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<header class="bar">
+  <div class="brand">darkroom</div>
+  <nav class="tabs">
+    <button class="tab is-on" data-view="timeline" type="button">Timeline</button>
+    <button class="tab" data-view="clusters" type="button">Duplicates <span class="badge" id="dupe-count" hidden></span></button>
+  </nav>
+  <div class="stats" id="stats">indexing&hellip;</div>
+</header>
+
+<div class="progress" id="progress" hidden>
+  <div class="progress-fill" id="progress-fill"></div>
+  <span class="progress-text" id="progress-text"></span>
+</div>
+
+<main>
+  <section id="view-timeline"></section>
+  <section id="view-clusters" hidden></section>
+  <p class="empty" id="empty" hidden>No images found in this folder.</p>
+</main>
+
+<div class="viewer" id="viewer" hidden>
+  <button class="close" id="close" aria-label="Close">&times;</button>
+  <div class="stage"><img id="viewer-img" alt=""></div>
+  <div class="info" id="viewer-info"></div>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>
