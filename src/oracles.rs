@@ -4,8 +4,18 @@
 //! difference between "it round-trips against itself" — which a consistently
 //! wrong implementation also passes — and "a real tool accepts it".
 //!
-//! Tools that are absent cause a **skip with a printed notice**, never a
-//! silent pass: `cargo test -- --nocapture` shows exactly which oracles ran.
+//! **Two-tier skip behaviour.** By default, a missing tool or an absent
+//! corpus directory is a **skip with a printed notice** — a judge without
+//! Node/Python/the corpus staged still gets a green `cargo test`, because
+//! most of this suite (322 unit tests) doesn't need any of that. But a plain
+//! `cargo test` *captures* stdout/stderr on a passing test, so those
+//! notices are invisible unless you pass `-- --nocapture` — which means
+//! "322 passed" alone proves nothing about which oracles actually ran.
+//!
+//! Set `DARKROOM_REQUIRE_ORACLES=1` to turn every skip in this file into a
+//! hard failure instead. That is the command that proves the corpus is
+//! staged and every external oracle really ran:
+//! `DARKROOM_REQUIRE_ORACLES=1 cargo test --release`.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -27,6 +37,20 @@ fn scratch(name: &str) -> PathBuf {
 
 fn have(program: &str, args: &[&str]) -> bool {
     Command::new(program).args(args).output().is_ok()
+}
+
+/// Skips the calling test with a printed `SKIP` notice — unless
+/// `DARKROOM_REQUIRE_ORACLES=1` is set, in which case the same condition is
+/// a hard `panic!` instead of an invisible pass. See the module doc comment.
+macro_rules! skip {
+    ($($arg:tt)*) => {{
+        let msg = format!($($arg)*);
+        if std::env::var_os("DARKROOM_REQUIRE_ORACLES").is_some() {
+            panic!("DARKROOM_REQUIRE_ORACLES=1: refusing to silently skip - {msg}");
+        }
+        eprintln!("SKIP {msg}");
+        return;
+    }};
 }
 
 /// Locates a real `gzip` binary.
@@ -63,8 +87,7 @@ fn gzip(data: &[u8]) -> Vec<u8> {
 #[test]
 fn deflate_output_survives_real_gunzip() {
     let Some(gz_tool) = gzip_tool() else {
-        eprintln!("SKIP deflate/gunzip: no gzip binary found");
-        return;
+        skip!("deflate/gunzip: no gzip binary found");
     };
 
     let cases: Vec<(&str, Vec<u8>)> = vec![
@@ -105,8 +128,7 @@ fn deflate_output_survives_real_gunzip() {
 #[test]
 fn zlib_output_survives_python_zlib() {
     if !have("python", &["--version"]) {
-        eprintln!("SKIP zlib/python: python not on PATH");
-        return;
+        skip!("zlib/python: python not on PATH");
     }
 
     let data: Vec<u8> = (0..120_000u32).map(|i| (i / 97) as u8).collect();
@@ -139,8 +161,7 @@ fn zlib_output_survives_python_zlib() {
 fn pngsuite_conformance() {
     let dir = corpus().join("pngsuite");
     if !dir.is_dir() {
-        eprintln!("SKIP pngsuite: {} not present", dir.display());
-        return;
+        skip!("pngsuite: {} not present", dir.display());
     }
 
     let (mut ok, mut rejected, mut wrong_accept, mut wrong_reject) = (0, 0, 0, 0);
@@ -197,8 +218,7 @@ fn pngsuite_conformance() {
 fn png_decode_matches_pillow() {
     let dir = corpus().join("pngsuite");
     if !dir.is_dir() || !have("python", &["--version"]) {
-        eprintln!("SKIP png/pillow: corpus or python missing");
-        return;
+        skip!("png/pillow: corpus or python missing");
     }
     if !Command::new("python")
         .args(["-c", "import PIL"])
@@ -206,8 +226,7 @@ fn png_decode_matches_pillow() {
         .map(|o| o.status.success())
         .unwrap_or(false)
     {
-        eprintln!("SKIP png/pillow: Pillow not installed");
-        return;
+        skip!("png/pillow: Pillow not installed");
     }
 
     let script = scratch("check_png.py");
@@ -284,8 +303,7 @@ fn png_encode_is_readable_by_pillow() {
             .map(|o| o.status.success())
             .unwrap_or(false)
     {
-        eprintln!("SKIP encode/pillow: Pillow not installed");
-        return;
+        skip!("encode/pillow: Pillow not installed");
     }
 
     let script = scratch("check_encode.py");
@@ -327,8 +345,7 @@ fn png_encode_is_readable_by_pillow() {
 fn pathological_files_never_panic() {
     let dir = corpus().join("pathological");
     if !dir.is_dir() {
-        eprintln!("SKIP pathological: corpus not present");
-        return;
+        skip!("pathological: corpus not present");
     }
 
     let (mut decoded, mut refused) = (0, 0);
@@ -357,8 +374,7 @@ fn pathological_files_never_panic() {
 fn decompression_bomb_is_capped() {
     let p = corpus().join("pathological").join("decompression-bomb.png");
     if !p.is_file() {
-        eprintln!("SKIP bomb: corpus not present");
-        return;
+        skip!("bomb: corpus not present");
     }
     let bytes = fs::read(&p).unwrap();
     // Whatever the outcome, it must be bounded and prompt.
@@ -400,8 +416,7 @@ fn decompression_bomb_is_capped() {
 fn jpeg_decode_matches_jpeg_js() {
     let harness = Path::new(env!("CARGO_MANIFEST_DIR")).join("oracle").join("decode.js");
     if !harness.is_file() || !have("node", &["--version"]) {
-        eprintln!("SKIP jpeg/jpeg-js: run `npm install jpeg-js` in oracle/ to enable");
-        return;
+        skip!("jpeg/jpeg-js: run `npm install jpeg-js` in oracle/ to enable");
     }
     if !Command::new("node")
         .arg("-e")
@@ -411,8 +426,7 @@ fn jpeg_decode_matches_jpeg_js() {
         .map(|o| o.status.success())
         .unwrap_or(false)
     {
-        eprintln!("SKIP jpeg/jpeg-js: jpeg-js not installed in oracle/");
-        return;
+        skip!("jpeg/jpeg-js: jpeg-js not installed in oracle/");
     }
 
     let mut dirs = vec![
@@ -422,8 +436,7 @@ fn jpeg_decode_matches_jpeg_js() {
     ];
     dirs.retain(|d| d.is_dir());
     if dirs.is_empty() {
-        eprintln!("SKIP jpeg/jpeg-js: corpus not present");
-        return;
+        skip!("jpeg/jpeg-js: corpus not present");
     }
 
     let (mut compared, mut failed) = (0, 0);
@@ -526,8 +539,7 @@ fn no_decoder_panics_on_any_corpus_file() {
         }
     }
     if files.is_empty() {
-        eprintln!("SKIP panic sweep: corpus not present");
-        return;
+        skip!("panic sweep: corpus not present");
     }
 
     let (mut jpeg_ok, mut png_ok) = (0, 0);
@@ -560,8 +572,7 @@ fn no_decoder_panics_on_any_corpus_file() {
 fn near_duplicate_fixture() {
     let dir = corpus().join("near-duplicates");
     if !dir.is_dir() {
-        eprintln!("SKIP near-duplicates: corpus not present");
-        return;
+        skip!("near-duplicates: corpus not present");
     }
 
     // Run the real pipeline: decode, orient, hash.
@@ -642,8 +653,7 @@ fn thumbnail_compression_is_within_reach_of_libpng() {
             .map(|o| o.status.success())
             .unwrap_or(false)
     {
-        eprintln!("SKIP thumb size: corpus or Pillow missing");
-        return;
+        skip!("thumb size: corpus or Pillow missing");
     }
 
     let img = crate::jpeg::decode(&fs::read(&path).unwrap()).unwrap();
@@ -702,8 +712,7 @@ fn quantiser_is_competitive_with_pillow() {
             .map(|o| o.status.success())
             .unwrap_or(false)
     {
-        eprintln!("SKIP quantiser: corpus or Pillow missing");
-        return;
+        skip!("quantiser: corpus or Pillow missing");
     }
 
     let img = crate::jpeg::decode(&fs::read(&src).unwrap()).unwrap();
@@ -844,8 +853,7 @@ for k, v in sorted(out.items()):
 fn exif_matches_pillow_across_vendors() {
     let dir = corpus().join("exif-vendors");
     if !dir.is_dir() {
-        eprintln!("SKIP exif vendors: run corpus/generate_exif_vendors.py first");
-        return;
+        skip!("exif vendors: run corpus/generate_exif_vendors.py first");
     }
     if !Command::new("python")
         .args(["-c", "import PIL"])
@@ -853,8 +861,7 @@ fn exif_matches_pillow_across_vendors() {
         .map(|o| o.status.success())
         .unwrap_or(false)
     {
-        eprintln!("SKIP exif vendors: Pillow not installed");
-        return;
+        skip!("exif vendors: Pillow not installed");
     }
 
     let script = scratch("read_exif.py");
@@ -1002,8 +1009,7 @@ fn find_tiff_marker(bytes: &[u8]) -> Option<usize> {
 fn gif_decode_matches_pillow() {
     let dir = corpus().join("gif");
     if !dir.is_dir() {
-        eprintln!("SKIP gif/pillow: corpus/gif not present");
-        return;
+        skip!("gif/pillow: corpus/gif not present");
     }
     if !Command::new("python")
         .args(["-c", "import PIL"])
@@ -1011,8 +1017,7 @@ fn gif_decode_matches_pillow() {
         .map(|o| o.status.success())
         .unwrap_or(false)
     {
-        eprintln!("SKIP gif/pillow: Pillow not installed");
-        return;
+        skip!("gif/pillow: Pillow not installed");
     }
 
     let script = scratch("check_gif.py");
