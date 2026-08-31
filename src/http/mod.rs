@@ -12,8 +12,10 @@ pub mod response;
 pub mod route;
 
 use std::io::{self, Write};
-use std::net::{Ipv4Addr, TcpListener, TcpStream};
+use std::net::{IpAddr, Ipv4Addr, TcpListener, TcpStream};
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::mpsc::Sender;
 use std::sync::{Arc, RwLock};
 use std::thread;
 use std::time::Duration;
@@ -41,16 +43,84 @@ const WRITE_TIMEOUT: Duration = Duration::from_secs(30);
 pub struct State {
     pub catalog: RwLock<Arc<Catalog>>,
     pub progress: Arc<Progress>,
-    pub root: String,
+    root: RwLock<String>,
+    /// Where a validated new folder from `/api/root` goes. Something
+    /// outside this module owns the receiving end and does the actual
+    /// walk-and-decode — the indexer and the server still meet only at the
+    /// catalog; this is a request for a *different* one, not the building
+    /// of it.
+    retarget: Option<Sender<PathBuf>>,
+    /// The LAN address darkroom prints its own QR code for. A connecting
+    /// peer is treated as "this machine" if it matches this or is loopback
+    /// — see `is_local_peer`.
+    own_lan_ip: Option<Ipv4Addr>,
 }
 
 impl State {
+    pub fn new(
+        catalog: Catalog,
+        progress: Arc<Progress>,
+        root: String,
+        retarget: Option<Sender<PathBuf>>,
+        own_lan_ip: Option<Ipv4Addr>,
+    ) -> State {
+        State {
+            catalog: RwLock::new(Arc::new(catalog)),
+            progress,
+            root: RwLock::new(root),
+            retarget,
+            own_lan_ip,
+        }
+    }
+
     pub fn catalog(&self) -> Arc<Catalog> {
         Arc::clone(&self.catalog.read().unwrap_or_else(|e| e.into_inner()))
     }
 
     pub fn replace(&self, next: Catalog) {
         *self.catalog.write().unwrap_or_else(|e| e.into_inner()) = Arc::new(next);
+    }
+
+    pub fn root(&self) -> String {
+        self.root.read().unwrap_or_else(|e| e.into_inner()).clone()
+    }
+
+    pub fn set_root(&self, next: String) {
+        *self.root.write().unwrap_or_else(|e| e.into_inner()) = next;
+    }
+
+    /// Submits a validated folder for the background indexer to switch to.
+    /// `Err` means there is nothing listening — the caller should say so
+    /// rather than silently doing nothing.
+    ///
+    /// **Resets `progress` here, synchronously, before the channel send —
+    /// not in the background thread that does the actual walk.** The HTTP
+    /// response for this request goes out right after this returns, and the
+    /// client opens a fresh `/api/progress` stream the moment it does. If
+    /// the reset happened later, on the indexer's own schedule, that stream
+    /// could connect while `progress` still reported the *previous* run's
+    /// `finished`, read that as "already done", and close itself before the
+    /// new run ever starts.
+    pub fn request_retarget(&self, root: PathBuf) -> Result<(), ()> {
+        match &self.retarget {
+            Some(tx) => {
+                self.progress.reset();
+                tx.send(root).map_err(|_| ())
+            }
+            None => Err(()),
+        }
+    }
+
+    /// A request to change the folder must come from the machine darkroom
+    /// itself is running on — loopback, or the same address it advertises
+    /// in its own QR code. Anyone on the Wi-Fi can browse the timeline;
+    /// only the person at the keyboard can change what it shows them.
+    pub fn is_local_peer(&self, peer: Option<IpAddr>) -> bool {
+        match peer {
+            Some(IpAddr::V4(ip)) => ip.is_loopback() || Some(ip) == self.own_lan_ip,
+            Some(IpAddr::V6(ip)) => ip.is_loopback(),
+            None => false,
+        }
     }
 }
 
@@ -64,8 +134,13 @@ impl Drop for Permit {
     }
 }
 
-pub fn serve(state: Arc<State>, port: u16) -> io::Result<()> {
+/// `on_listening` runs once, after the socket is actually bound — not
+/// before. Opening a browser tab a moment too early shows a phone or laptop
+/// "connection refused" instead of the timeline, which reads as darkroom
+/// being broken rather than just not-quite-ready yet.
+pub fn serve(state: Arc<State>, port: u16, on_listening: impl FnOnce()) -> io::Result<()> {
     let listener = TcpListener::bind((Ipv4Addr::UNSPECIFIED, port))?;
+    on_listening();
     let live = Arc::new(AtomicUsize::new(0));
 
     for stream in listener.incoming() {
@@ -100,6 +175,9 @@ fn handle(stream: TcpStream, state: &Arc<State>) {
     // Responses are small and latency-sensitive; there is nothing to
     // coalesce.
     let _ = stream.set_nodelay(true);
+    // Read once, before the stream moves into `Conn` — this is the only
+    // fact `route()` ever needs about who's asking.
+    let peer_ip = stream.peer_addr().ok().map(|a| a.ip());
 
     let mut conn = Conn::new(stream);
 
@@ -127,7 +205,7 @@ fn handle(stream: TcpStream, state: &Arc<State>) {
                 }
                 keep_alive = !req.wants_close();
                 let head_only = req.method == Method::Head;
-                (route::route(&req, state), head_only)
+                (route::route(&req, state, peer_ip), head_only)
             }
             Err(_) => (Response::text(400, "bad request\n"), false),
         };
