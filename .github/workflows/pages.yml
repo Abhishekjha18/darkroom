@@ -1,0 +1,93 @@
+# Publishes the QR playground to GitHub Pages.
+#
+# The page runs darkroom's own encoder client-side, compiled to WebAssembly
+# from src/qr (plus src/image.rs and src/wasm.rs - see Cargo.toml's [lib]).
+# The .wasm binary is never committed: building it here means the deployed
+# page always runs the code that is actually in this repository, not a
+# stale artifact someone forgot to rebuild.
+
+name: Playground
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'playground/**'
+      - 'src/qr/**'
+      - 'src/image.rs'
+      - 'src/wasm.rs'
+      - 'src/lib.rs'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rust-toolchain.toml'
+      - 'scripts/verify-playground.mjs'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time; a queued run supersedes a waiting one rather than
+# cancelling a deploy already in flight.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install the wasm32 target for the pinned toolchain
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: build darkroom.wasm
+        run: cargo build --release --target wasm32-unknown-unknown --lib
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # A page that loads but answers wrongly is worse than one that fails
+      # to deploy, so the wasm binary is driven the same way the browser
+      # will before it ships.
+      - name: verify the playground
+        run: node scripts/verify-playground.mjs target/wasm32-unknown-unknown/release/darkroom.wasm
+
+      - name: stage the site
+        run: |
+          mkdir -p dist
+          cp playground/index.html playground/app.js playground/style.css dist/
+          cp target/wasm32-unknown-unknown/release/darkroom.wasm dist/darkroom.wasm
+
+      # enablement turns Pages on for the repository rather than requiring
+      # it to have been switched on by hand first.
+      - uses: actions/configure-pages@v5
+        id: pages
+        continue-on-error: true
+        with:
+          enablement: true
+
+      - name: explain a Pages failure rather than just failing
+        if: steps.pages.outcome == 'failure'
+        run: |
+          echo "::error::Could not configure GitHub Pages."
+          echo "Enable it under Settings -> Pages -> Source: GitHub Actions, then re-run this workflow."
+          exit 1
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
