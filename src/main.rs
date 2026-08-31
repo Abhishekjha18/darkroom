@@ -83,6 +83,25 @@ fn run(args: cli::Args) -> Result<(), String> {
     // the *printed* URL is not a fact about who is actually allowed to
     // retarget the indexer.
     let own_lan_ip = net::local_ip();
+
+    // The address to print and encode. `--host` wins; otherwise the address
+    // just resolved above.
+    let host = match &args.host {
+        Some(h) => h.clone(),
+        None => match own_lan_ip {
+            Some(ip) => ip.to_string(),
+            None => {
+                eprintln!("note: no default route found; printing the loopback address.");
+                eprintln!("      pass --host <your-lan-ip> to reach this from a phone.");
+                "127.0.0.1".to_string()
+            }
+        },
+    };
+    let url = format!("http://{host}:{}", args.port);
+    // Computed once, here, before the QR page's own route exists to ask for
+    // it — `/qr.png` in route.rs just hands back these same bytes.
+    let qr_png = print_qr(&url, args.invert);
+
     let (retarget_tx, retarget_rx) = std::sync::mpsc::channel::<std::path::PathBuf>();
     let state = Arc::new(http::State::new(
         Catalog::from_entries(Vec::new()),
@@ -90,6 +109,7 @@ fn run(args: cli::Args) -> Result<(), String> {
         shown.clone(),
         Some(retarget_tx),
         own_lan_ip,
+        qr_png,
     ));
 
     if args.no_index {
@@ -148,35 +168,23 @@ fn run(args: cli::Args) -> Result<(), String> {
             .map_err(|e| format!("cannot start the retarget listener: {e}"))?;
     }
 
-    // The address to print. `--host` wins; otherwise the UDP default-route
-    // trick already run above to decide who's allowed to retarget.
-    let host = match &args.host {
-        Some(h) => h.clone(),
-        None => match own_lan_ip {
-            Some(ip) => ip.to_string(),
-            None => {
-                eprintln!("note: no default route found; printing the loopback address.");
-                eprintln!("      pass --host <your-lan-ip> to reach this from a phone.");
-                "127.0.0.1".to_string()
-            }
-        },
-    };
-    let url = format!("http://{host}:{}", args.port);
-
-    print_qr(&url, args.invert);
     println!("  {url}");
     println!();
     println!("  scan the code, or open that on your phone: same Wi-Fi, nothing uploaded");
     if !args.no_open {
-        println!("  opening it in your browser too — pass --no-open to skip that");
+        println!("  opening the pairing page in your browser too — pass --no-open to skip that");
     }
     println!("  ctrl-c to stop");
     println!();
 
     let no_open = args.no_open;
+    let qr_page = format!("{url}/qr");
     http::serve(state, args.port, move || {
+        // Opens the pairing page, not the timeline itself — the timeline is
+        // what the *phone* lands on after scanning; the laptop's job here
+        // is just handing over the code.
         if !no_open {
-            open_browser(&url);
+            open_browser(&qr_page);
         }
     })
     .map_err(|e| {
@@ -260,18 +268,25 @@ fn index_folder(
 /// first version wrote it beside the photos, and the next run then indexed
 /// darkroom's own output — a tool that pollutes the folder it is reading and
 /// then catalogues the pollution.
-fn print_qr(url: &str, invert: bool) {
+/// Prints the terminal QR, writes the disk fallback, and returns the PNG
+/// bytes so the caller can also serve them at `/qr.png` — the pairing page
+/// needs the same encode this function already does, not a second one.
+fn print_qr(url: &str, invert: bool) -> Option<Vec<u8>> {
     match qr::encode(url) {
         Ok(code) => {
             println!();
             print!("{}", qr::render::terminal(&code, invert));
             let png = png::encode(&qr::render::image(&code, 8));
             let path = std::env::current_dir().unwrap_or_default().join("qr.png");
-            if std::fs::write(&path, png).is_ok() {
+            if std::fs::write(&path, &png).is_ok() {
                 println!("  (also written to {})", display_path(&path));
             }
+            Some(png)
         }
-        Err(e) => eprintln!("note: could not render a QR code ({e}); use the URL below"),
+        Err(e) => {
+            eprintln!("note: could not render a QR code ({e}); use the URL below");
+            None
+        }
     }
 }
 
