@@ -4,3 +4,5 @@ oracle/node_modules
 .claude/settings.local.json
 .tokensave/
 .DS_Store
+.darkroom-index
+.darkroom-lock
