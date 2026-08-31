@@ -1,11 +1,13 @@
 //! The routes.
 
 use std::fs;
+use std::net::IpAddr;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use super::State;
 use super::mime;
-use super::request::{Method, Request};
+use super::request::{Method, Request, percent_decode};
 use super::response::{Body, Response};
 use crate::catalog::{Catalog, Entry, EntryState};
 use crate::json::Json;
@@ -16,18 +18,28 @@ const INDEX_HTML: &str = include_str!("../web/index.html");
 const APP_JS: &str = include_str!("../web/app.js");
 const STYLE_CSS: &str = include_str!("../web/style.css");
 
-pub fn route(req: &Request, state: &Arc<State>) -> Response {
+pub fn route(req: &Request, state: &Arc<State>, peer: Option<IpAddr>) -> Response {
+    // The one mutating route gets its own dispatch, ahead of the
+    // GET/HEAD-only gate below — everything else still 405s a POST.
+    if req.method == Method::Post {
+        return match req.path.as_str() {
+            "/api/root" => set_root(req, state, peer),
+            _ => Response::text(405, "darkroom serves GET and HEAD\n")
+                .header("Allow", "GET, HEAD"),
+        };
+    }
     if req.method == Method::Other {
         return Response::text(405, "darkroom serves GET and HEAD\n")
             .header("Allow", "GET, HEAD");
     }
     let catalog = state.catalog();
+    let root = state.root();
 
     match req.path.as_str() {
         "/" => Response::static_asset(mime::HTML, INDEX_HTML.as_bytes()),
         "/app.js" => Response::static_asset(mime::JS, APP_JS.as_bytes()),
         "/style.css" => Response::static_asset(mime::CSS, STYLE_CSS.as_bytes()),
-        "/api/photos" => Response::json(photos_json(&catalog, &state.root, state)),
+        "/api/photos" => Response::json(photos_json(&catalog, &root, state)),
         "/api/clusters" => Response::json(clusters_json(&catalog)),
         path => {
             if let Some(rest) = path.strip_prefix("/thumb/") {
@@ -41,6 +53,55 @@ pub fn route(req: &Request, state: &Arc<State>) -> Response {
             }
         }
     }
+}
+
+/// Retargets the indexer to a different folder, given `?path=`.
+///
+/// **This is the one route in the file that takes a user-suppliable
+/// filesystem path** — everything else is built specifically to avoid that
+/// (see `original`'s own comment on the point). It is fenced off the only
+/// way that matters here: `State::is_local_peer` refuses anyone who isn't
+/// the machine darkroom is running on, so a phone on the same Wi-Fi can
+/// browse the timeline but never redirect it to a folder its owner didn't
+/// choose.
+fn set_root(req: &Request, state: &Arc<State>, peer: Option<IpAddr>) -> Response {
+    if !state.is_local_peer(peer) {
+        return Response::api_error(
+            403,
+            "changing the folder is only allowed from the machine darkroom is running on",
+        );
+    }
+
+    let Some(raw) = req.query.as_deref().and_then(|q| query_param(q, "path")) else {
+        return Response::api_error(400, "missing ?path=");
+    };
+    let Ok(canon) = PathBuf::from(raw).canonicalize() else {
+        return Response::api_error(400, "no such folder");
+    };
+    if !canon.is_dir() {
+        return Response::api_error(400, "not a folder");
+    }
+
+    if state.request_retarget(canon).is_err() {
+        return Response::api_error(500, "the indexer isn't running");
+    }
+
+    let mut j = Json::new();
+    j.begin_obj();
+    j.kv_str("status", "indexing");
+    j.end_obj();
+    Response::json(j.into_bytes())
+}
+
+/// The one query field darkroom ever reads — a general parser for a single
+/// key isn't worth carrying. `+` is decoded to a space first: that's how a
+/// browser's own `URLSearchParams`/`fetch` encode one in a query string,
+/// and plain percent-decoding alone would leave a literal `+` behind.
+fn query_param(query: &str, key: &str) -> Option<String> {
+    query.split('&').find_map(|pair| {
+        let (k, v) = pair.split_once('=')?;
+        (k == key).then(|| percent_decode(&v.replace('+', " ")))
+    })
 }
 
 fn parse_id(hex: &str) -> Option<u64> {
@@ -289,14 +350,16 @@ mod tests {
     use super::*;
     use crate::http::request;
     use crate::pool::Progress;
-    use std::sync::RwLock;
+    use std::net::Ipv4Addr;
 
     fn state() -> Arc<State> {
-        Arc::new(State {
-            catalog: RwLock::new(Arc::new(Catalog::from_entries(Vec::new()))),
-            progress: Arc::new(Progress::default()),
-            root: "D:/Photos".into(),
-        })
+        Arc::new(State::new(
+            Catalog::from_entries(Vec::new()),
+            Arc::new(Progress::default()),
+            "D:/Photos".into(),
+            None,
+            None,
+        ))
     }
 
     fn get(path: &str) -> String {
@@ -306,7 +369,7 @@ mod tests {
     fn status_of(path: &str) -> u16 {
         let raw = get(path);
         let req = request::parse(raw.as_bytes()).unwrap();
-        route(&req, &state()).status
+        route(&req, &state(), None).status
     }
 
     #[test]
@@ -327,15 +390,15 @@ mod tests {
     fn unknown_api_paths_are_json() {
         let raw = get("/api/nope");
         let req = request::parse(raw.as_bytes()).unwrap();
-        let r = route(&req, &state());
+        let r = route(&req, &state(), None);
         assert_eq!(r.status, 404);
         assert_eq!(r.content_type, mime::JSON);
     }
 
     #[test]
-    fn post_is_405() {
+    fn post_is_405_everywhere_but_api_root() {
         let req = request::parse(b"POST / HTTP/1.1\r\n\r\n").unwrap();
-        assert_eq!(route(&req, &state()).status, 405);
+        assert_eq!(route(&req, &state(), None).status, 405);
     }
 
     #[test]
@@ -361,6 +424,67 @@ mod tests {
             String::from_utf8(body).unwrap(),
             r#"{"count":0,"wasted":0,"clusters":[]}"#
         );
+    }
+
+    fn post_req(path: &str) -> String {
+        format!("POST {path} HTTP/1.1\r\n\r\n")
+    }
+
+    #[test]
+    fn set_root_refuses_a_remote_peer() {
+        let s = Arc::new(State::new(
+            Catalog::from_entries(Vec::new()),
+            Arc::new(Progress::default()),
+            "/x".into(),
+            None,
+            Some(Ipv4Addr::new(192, 168, 1, 50)),
+        ));
+        let remote = Some(IpAddr::V4(Ipv4Addr::new(192, 168, 1, 77)));
+        let raw = post_req("/api/root?path=%2Ftmp");
+        let req = request::parse(raw.as_bytes()).unwrap();
+        let r = route(&req, &s, remote);
+        assert_eq!(r.status, 403);
+    }
+
+    #[test]
+    fn set_root_accepts_loopback_and_the_advertised_lan_ip() {
+        let lan = Ipv4Addr::new(192, 168, 1, 50);
+        let s = Arc::new(State::new(
+            Catalog::from_entries(Vec::new()),
+            Arc::new(Progress::default()),
+            "/x".into(),
+            None,
+            Some(lan),
+        ));
+        assert!(s.is_local_peer(Some(IpAddr::V4(Ipv4Addr::LOCALHOST))));
+        assert!(s.is_local_peer(Some(IpAddr::V4(lan))));
+        assert!(!s.is_local_peer(Some(IpAddr::V4(Ipv4Addr::new(192, 168, 1, 77)))));
+        assert!(!s.is_local_peer(None));
+    }
+
+    #[test]
+    fn set_root_requires_a_path() {
+        let loopback = Some(IpAddr::V4(Ipv4Addr::LOCALHOST));
+        let raw = post_req("/api/root");
+        let req = request::parse(raw.as_bytes()).unwrap();
+        let r = route(&req, &state(), loopback);
+        assert_eq!(r.status, 400);
+    }
+
+    #[test]
+    fn set_root_rejects_a_folder_that_does_not_exist() {
+        let loopback = Some(IpAddr::V4(Ipv4Addr::LOCALHOST));
+        let raw = post_req("/api/root?path=%2Fno%2Fsuch%2Ffolder%2Freally");
+        let req = request::parse(raw.as_bytes()).unwrap();
+        let r = route(&req, &state(), loopback);
+        assert_eq!(r.status, 400);
+    }
+
+    #[test]
+    fn query_param_reads_the_one_field_darkroom_wants() {
+        assert_eq!(query_param("path=%2Ftmp&x=1", "path").as_deref(), Some("/tmp"));
+        assert_eq!(query_param("a=1&b=2", "path"), None);
+        assert_eq!(query_param("path=a+b", "path").as_deref(), Some("a b"));
     }
 
     #[test]
