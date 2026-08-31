@@ -17,6 +17,12 @@ use crate::json::Json;
 const INDEX_HTML: &str = include_str!("../web/index.html");
 const APP_JS: &str = include_str!("../web/app.js");
 const STYLE_CSS: &str = include_str!("../web/style.css");
+// The pairing page — a phone lands nowhere near the timeline until it's
+// scanned a code, so this is deliberately a separate document rather than
+// a state the timeline's own markup toggles into.
+const QR_HTML: &str = include_str!("../web/qr.html");
+const QR_JS: &str = include_str!("../web/qr.js");
+const QR_CSS: &str = include_str!("../web/qr.css");
 
 pub fn route(req: &Request, state: &Arc<State>, peer: Option<IpAddr>) -> Response {
     // The one mutating route gets its own dispatch, ahead of the
@@ -39,6 +45,10 @@ pub fn route(req: &Request, state: &Arc<State>, peer: Option<IpAddr>) -> Respons
         "/" => Response::static_asset(mime::HTML, INDEX_HTML.as_bytes()),
         "/app.js" => Response::static_asset(mime::JS, APP_JS.as_bytes()),
         "/style.css" => Response::static_asset(mime::CSS, STYLE_CSS.as_bytes()),
+        "/qr" => Response::static_asset(mime::HTML, QR_HTML.as_bytes()),
+        "/qr.js" => Response::static_asset(mime::JS, QR_JS.as_bytes()),
+        "/qr.css" => Response::static_asset(mime::CSS, QR_CSS.as_bytes()),
+        "/qr.png" => qr_image(state),
         "/api/photos" => Response::json(photos_json(&catalog, &root, state)),
         "/api/clusters" => Response::json(clusters_json(&catalog)),
         path => {
@@ -52,6 +62,18 @@ pub fn route(req: &Request, state: &Arc<State>, peer: Option<IpAddr>) -> Respons
                 Response::text(404, "not found\n")
             }
         }
+    }
+}
+
+/// The QR code, computed once at startup from `http://host:port` and never
+/// touched again — `/qr.html` and `/qr.js` are the compiled-in half of the
+/// pairing page, this is the half that comes from `State` because it's
+/// runtime data (the actual LAN address), not a fixed asset.
+fn qr_image(state: &Arc<State>) -> Response {
+    match state.qr_png() {
+        Some(bytes) => Response::new(200, mime::PNG, Body::Bytes(bytes.to_vec()))
+            .header("Cache-Control", "no-store"),
+        None => Response::text(404, "no QR code available\n"),
     }
 }
 
@@ -359,6 +381,7 @@ mod tests {
             "D:/Photos".into(),
             None,
             None,
+            None,
         ))
     }
 
@@ -438,6 +461,7 @@ mod tests {
             "/x".into(),
             None,
             Some(Ipv4Addr::new(192, 168, 1, 50)),
+            None,
         ));
         let remote = Some(IpAddr::V4(Ipv4Addr::new(192, 168, 1, 77)));
         let raw = post_req("/api/root?path=%2Ftmp");
@@ -455,6 +479,7 @@ mod tests {
             "/x".into(),
             None,
             Some(lan),
+            None,
         ));
         assert!(s.is_local_peer(Some(IpAddr::V4(Ipv4Addr::LOCALHOST))));
         assert!(s.is_local_peer(Some(IpAddr::V4(lan))));
