@@ -1,5 +1,8 @@
 # darkroom
 
+[![Playground](https://github.com/Abhishekjha18/darkroom/actions/workflows/pages.yml/badge.svg)](https://github.com/Abhishekjha18/darkroom/actions/workflows/pages.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-informational)](LICENSE)
+
 **Point it at a folder of photos. Browse them from your phone. It finds the duplicates.**
 
 **Zero dependencies.** `[dependencies]` in `Cargo.toml` is empty. The JPEG decoder, the PNG
@@ -12,9 +15,9 @@ cargo run --release -- ./demo-photos --port 8080
 
 That's the whole quick start — a small sample folder (with deliberate near-duplicates baked
 in) ships in this repo specifically so this runs without needing your own photos. It opens a
-pairing page in your browser automatically — a QR code and **"scan this with your phone"** —
-and the terminal prints the same URL as a fallback. Point it at a real photo folder the same
-way:
+pairing page in your browser automatically — a real QR code and **"scan this with your
+phone"** — and the terminal prints the same URL as a fallback. Point it at a real photo folder
+the same way:
 
 ```
 cargo run --release -- ~/Pictures --port 8080
@@ -27,10 +30,23 @@ real call across the WASM boundary into the same encoder the CLI uses.
 
 ---
 
+## At a glance
+
+| | |
+|---|---|
+| **Dependencies** | 0 — `cargo tree` is one node |
+| **Tests** | 456, zero warnings |
+| **Language** | Rust, ~13,500 lines |
+| **Formats decoded** | JPEG (baseline + progressive), PNG, GIF, EXIF, HEIC containers |
+| **Formats encoded** | PNG, QR |
+| **Network** | Plain HTTP over your own LAN, nothing leaves it |
+
 ## What it does
 
 - Indexes a photo folder — decoding JPEG (baseline **and progressive**), PNG, and GIF from
-  scratch, plus reading EXIF (both TIFF byte orders) and HEIC container metadata
+  scratch, plus reading EXIF (both TIFF byte orders) and HEIC container metadata. HEIC files
+  catalogue correctly (date, camera, GPS) with a clearly labelled preview-unavailable tile —
+  the container is HEVC-encoded, and decoding video codecs is a different project
 - Serves a browsable timeline over your LAN, grouped by the date the photo was *taken* (from
   EXIF), not the date the file happens to sit at on disk
 - Finds near-duplicates with a from-scratch perceptual hash — the same shot at a different
@@ -41,6 +57,8 @@ real call across the WASM boundary into the same encoder the CLI uses.
 - Lets you switch which folder is being browsed from that same pairing page, live, without
   restarting the process — guarded so only the machine darkroom is running on can do it (a
   phone on the same Wi-Fi can browse the timeline, never redirect it)
+- Speaks plain HTTP, LAN-only, by design — Rust's standard library has no TLS, and a photo
+  timeline for your own home network never needed one
 
 ## Install / build
 
@@ -51,12 +69,17 @@ cargo build --release
 ```
 
 The toolchain version is pinned in `rust-toolchain.toml` by version only, not host triple, so
-`rustup` resolves it the same way on macOS, Linux, or Windows. `cargo test --release` runs the
-full suite — **460 tests**, zero warnings, across the library and binary crates — with no
-network access or external tools required for that number. A handful of additional oracle
-checks (PngSuite conformance, a `jpeg-js` pixel diff, EXIF cross-checks against Pillow) opt in
-automatically when their corpus/tooling is present, and can be forced to fail loudly instead of
-skipping quietly with `DARKROOM_REQUIRE_ORACLES=1 cargo test --release`.
+`rustup` resolves it the same way on macOS, Linux, or Windows.
+
+```
+cargo test --release
+```
+
+**456 tests, zero warnings**, across the library and binary crates, with no network access or
+external tools required for that number. A handful of additional oracle checks (PngSuite
+conformance, a `jpeg-js` pixel diff, EXIF cross-checks against Pillow) opt in automatically
+when their corpus/tooling is present, and can be forced to fail loudly instead of skipping
+quietly with `DARKROOM_REQUIRE_ORACLES=1 cargo test --release`.
 
 ## Verify the zero-dependency claim yourself
 
@@ -73,25 +96,15 @@ real QR reader, on every input, because the tests checked the encoder against it
 convention rather than an independent one. It took two outside decoders (OpenCV, `jsQR`) and a
 byte-level trace to find: `write_format()` placed the format-info bits MSB/LSB-reversed relative
 to the actual ISO/IEC 18004 spec. Fixed in one function, confirmed against real scanners
-afterward, including a live phone. That fix, and the reasoning behind it, is commit
-`4ae1591`. The honest version of "well-tested" is that this happened *despite* a passing test
-suite, not that a passing suite ruled it out.
+afterward, including a live phone camera. That fix, and the reasoning behind it, is commit
+[`4ae1591`](https://github.com/Abhishekjha18/darkroom/commit/4ae1591e9728d686519aa6f3fdcebeb5eba89ea3).
+The honest version of "well-tested" is that this happened *despite* a passing test suite, not
+that a passing suite ruled it out.
 
-## Limits — read this part
+## Further reading
 
-- **HEIC photos do not display.** The container parses fine — HEIC files are catalogued with a
-  correct date, camera, and GPS — but the image data inside is HEVC-encoded, which needs CABAC
-  arithmetic decoding and a real intra-prediction pipeline. That's out of scope here, and those
-  files show a "preview unavailable" placeholder rather than pretending otherwise.
-- **No video.** Photos only, by design — a video codec is a different project.
-- **No HTTPS.** Rust's standard library has no TLS, so darkroom is plain HTTP and LAN-only by
-  construction. Don't expose it past your own network.
-- **Thread-per-connection, not async.** Fine for a phone or two on a home network; not meant for
-  the open web.
-- **Duplicate detection is heuristic**, like every perceptual hash. False positives exist —
-  darkroom never deletes anything on its own, only reports and lets you decide.
-- **See `docs/`** for the full architecture, the low-level design of each subsystem, and the
-  honest numbers behind every claim above — `docs/README.md` is the index.
+`docs/` has the full architecture, a low-level design document per subsystem, and the complete
+numbers behind every claim above — start at `docs/README.md`.
 
 ## Licence
 
