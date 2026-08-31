@@ -54,6 +54,13 @@ pub struct State {
     /// peer is treated as "this machine" if it matches this or is loopback
     /// — see `is_local_peer`.
     own_lan_ip: Option<Ipv4Addr>,
+    /// The QR PNG's bytes, encoded once at startup from `http://host:port`
+    /// — never re-encoded, because that address never changes for the life
+    /// of the process. Switching folders changes what `/api/photos`
+    /// answers, not this: the same code stays valid across any number of
+    /// switches, which is the whole point of it being served from state
+    /// rather than baked into a static asset.
+    qr_png: Option<Vec<u8>>,
 }
 
 impl State {
@@ -63,6 +70,7 @@ impl State {
         root: String,
         retarget: Option<Sender<PathBuf>>,
         own_lan_ip: Option<Ipv4Addr>,
+        qr_png: Option<Vec<u8>>,
     ) -> State {
         State {
             catalog: RwLock::new(Arc::new(catalog)),
@@ -70,7 +78,12 @@ impl State {
             root: RwLock::new(root),
             retarget,
             own_lan_ip,
+            qr_png,
         }
+    }
+
+    pub fn qr_png(&self) -> Option<&[u8]> {
+        self.qr_png.as_deref()
     }
 
     pub fn catalog(&self) -> Arc<Catalog> {
