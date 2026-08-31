@@ -11,12 +11,20 @@
 
 <header class="bar">
   <div class="brand">darkroom</div>
+  <button class="root-btn" id="root-btn" type="button" title="Change photo folder"></button>
   <nav class="tabs">
     <button class="tab is-on" data-view="timeline" type="button">Timeline</button>
     <button class="tab" data-view="clusters" type="button">Duplicates <span class="badge" id="dupe-count" hidden></span></button>
   </nav>
   <div class="stats" id="stats">indexing&hellip;</div>
 </header>
+
+<div class="root-edit" id="root-edit" hidden>
+  <input type="text" id="root-input" placeholder="/path/to/photos" autocomplete="off" spellcheck="false" autocapitalize="off">
+  <button id="root-go" type="button">Switch</button>
+  <button id="root-cancel" type="button">Cancel</button>
+</div>
+<p class="root-msg" id="root-msg" hidden></p>
 
 <div class="progress" id="progress" hidden>
   <div class="progress-fill" id="progress-fill"></div>

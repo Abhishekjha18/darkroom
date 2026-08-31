@@ -48,6 +48,73 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 
+.root-btn {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.root-btn::before { content: "\270E"; }
+
+.root-btn:hover { color: var(--ink); border-color: var(--accent); }
+
+.root-edit {
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+
+.root-edit[hidden] { display: none; }
+
+.root-edit input {
+  flex: 1;
+  min-width: 200px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.root-edit input:focus { outline: none; border-color: var(--accent); }
+
+.root-edit button {
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 13px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+#root-go { background: var(--accent); color: #12151a; border-color: var(--accent); font-weight: 600; }
+
+.root-msg {
+  margin: 0;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: var(--bad, #d96b41);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.root-msg[hidden] { display: none; }
+
 main { padding: var(--tile); }
 
 .grid {

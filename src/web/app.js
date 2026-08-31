@@ -19,6 +19,12 @@ const progressText = $('progress-text');
 const viewer = $('viewer');
 const viewerImg = $('viewer-img');
 const viewerInfo = $('viewer-info');
+const rootBtn = $('root-btn');
+const rootEdit = $('root-edit');
+const rootInput = $('root-input');
+const rootGo = $('root-go');
+const rootCancel = $('root-cancel');
+const rootMsg = $('root-msg');
 
 let photos = [];
 let byId = new Map();
@@ -193,12 +199,16 @@ for (const tab of document.querySelectorAll('.tab')) {
   });
 }
 
+let currentRoot = '';
+
 function loadCatalog() {
   return fetch('/api/photos')
     .then((r) => r.json())
     .then((data) => {
       photos = data.photos;
       byId = new Map(photos.map((p) => [p.id, p]));
+      currentRoot = data.root;
+      rootBtn.title = 'Change photo folder (currently ' + data.root + ')';
 
       const parts = [data.count.toLocaleString() + ' photos', bytes(data.bytes)];
       if (data.clusters) parts.push(bytes(data.wasted) + ' reclaimable');
@@ -215,7 +225,9 @@ function loadCatalog() {
 }
 
 // Live indexing progress. The counter climbing is the cheapest motion
-// available, and the stream closes itself when indexing finishes.
+// available, and the stream closes itself when indexing finishes — so a
+// second index (a folder switch) needs its own fresh EventSource, not a
+// re-send on the one that already closed.
 function watchProgress() {
   const es = new EventSource('/api/progress');
   es.onmessage = (ev) => {
@@ -235,6 +247,54 @@ function watchProgress() {
   };
   es.onerror = () => { es.close(); progressEl.hidden = true; loadCatalog(); };
 }
+
+// Changing the folder — /api/root, the one route on the server that
+// mutates anything. It 403s unless this browser is talking to darkroom
+// from the machine darkroom itself is running on, so this control is safe
+// to show to every viewer: a phone on the same Wi-Fi can click it, but the
+// server refuses the request rather than the UI having to know who it's
+// talking to.
+function openRootEdit() {
+  rootInput.value = currentRoot;
+  rootMsg.hidden = true;
+  rootEdit.hidden = false;
+  rootInput.focus();
+  rootInput.select();
+}
+
+function closeRootEdit() {
+  rootEdit.hidden = true;
+  rootMsg.hidden = true;
+}
+
+function submitRoot() {
+  const path = rootInput.value.trim();
+  if (!path) return;
+
+  rootGo.disabled = true;
+  fetch('/api/root?path=' + encodeURIComponent(path), { method: 'POST' })
+    .then(async (r) => {
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+      closeRootEdit();
+      // A fresh index just started server-side; watch it the same way
+      // startup indexing is watched.
+      watchProgress();
+    })
+    .catch((e) => {
+      rootMsg.textContent = e.message;
+      rootMsg.hidden = false;
+    })
+    .finally(() => { rootGo.disabled = false; });
+}
+
+rootBtn.addEventListener('click', () => (rootEdit.hidden ? openRootEdit() : closeRootEdit()));
+rootCancel.addEventListener('click', closeRootEdit);
+rootGo.addEventListener('click', submitRoot);
+rootInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') submitRoot();
+  if (e.key === 'Escape') closeRootEdit();
+});
 
 loadCatalog();
 watchProgress();
