@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>darkroom — scan to open</title>
+<link rel="stylesheet" href="/qr.css">
+</head>
+<body>
+
+<div class="card">
+  <div class="brand">darkroom</div>
+
+  <img class="qr" src="/qr.png" alt="QR code — scan with your phone" width="296" height="296">
+
+  <p class="lede">Scan this with your phone</p>
+  <p class="sub">Same Wi-Fi, nothing uploaded.</p>
+
+  <p class="fallback">Or open <a id="fallback-url" href="#"></a> on the phone directly.</p>
+
+  <button class="edit-toggle" id="edit-toggle" type="button">Edit path of images</button>
+
+  <div class="edit-box" id="edit-box" hidden>
+    <label for="root-input">Folder to browse</label>
+    <div class="edit-row">
+      <input type="text" id="root-input" placeholder="/path/to/photos" autocomplete="off" spellcheck="false" autocapitalize="off">
+      <button id="root-go" type="button">Switch</button>
+    </div>
+    <p class="edit-note">Same QR code, same link — scanning it always shows whatever folder darkroom is currently pointed at.</p>
+    <p class="edit-msg" id="edit-msg" hidden></p>
+  </div>
+</div>
+
+<script src="/qr.js"></script>
+</body>
+</html>
