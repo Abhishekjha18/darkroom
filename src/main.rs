@@ -100,7 +100,7 @@ fn run(args: cli::Args) -> Result<(), String> {
     let url = format!("http://{host}:{}", args.port);
     // Computed once, here, before the QR page's own route exists to ask for
     // it — `/qr.png` in route.rs just hands back these same bytes.
-    let qr_png = print_qr(&url, args.invert);
+    let qr_png = print_qr(&url);
 
     let (retarget_tx, retarget_rx) = std::sync::mpsc::channel::<std::path::PathBuf>();
     let state = Arc::new(http::State::new(
@@ -170,9 +170,11 @@ fn run(args: cli::Args) -> Result<(), String> {
 
     println!("  {url}");
     println!();
-    println!("  scan the code, or open that on your phone: same Wi-Fi, nothing uploaded");
-    if !args.no_open {
-        println!("  opening the pairing page in your browser too — pass --no-open to skip that");
+    if args.no_open {
+        println!("  open /qr on that address for a QR code to scan, same Wi-Fi, nothing uploaded");
+    } else {
+        println!("  opening a QR code to scan in your browser — same Wi-Fi, nothing uploaded");
+        println!("  (pass --no-open to skip that)");
     }
     println!("  ctrl-c to stop");
     println!();
@@ -262,20 +264,24 @@ fn index_folder(
     progress.finish();
 }
 
-/// Prints the QR code and drops a `qr.png` as the fallback path.
+/// Encodes the QR code and drops a `qr.png` as the disk fallback. Returns
+/// the PNG bytes so the caller can also serve them at `/qr.png` — the
+/// pairing page needs the same encode this function already does, not a
+/// second one.
+///
+/// **No terminal rendering.** An early version printed ASCII-art QR to the
+/// terminal too, but a phone camera photographing a screen photographing a
+/// grid of half-block glyphs is exactly the fiddly, easy-to-get-wrong path
+/// the pairing page (`/qr`, auto-opened) now exists to skip — see
+/// `docs/BUILD.md` §6 for why that path was never reliable to begin with.
 ///
 /// **Written to the working directory, never into the photo folder.** The
 /// first version wrote it beside the photos, and the next run then indexed
 /// darkroom's own output — a tool that pollutes the folder it is reading and
 /// then catalogues the pollution.
-/// Prints the terminal QR, writes the disk fallback, and returns the PNG
-/// bytes so the caller can also serve them at `/qr.png` — the pairing page
-/// needs the same encode this function already does, not a second one.
-fn print_qr(url: &str, invert: bool) -> Option<Vec<u8>> {
+fn print_qr(url: &str) -> Option<Vec<u8>> {
     match qr::encode(url) {
         Ok(code) => {
-            println!();
-            print!("{}", qr::render::terminal(&code, invert));
             let png = png::encode(&qr::render::image(&code, 8));
             let path = std::env::current_dir().unwrap_or_default().join("qr.png");
             if std::fs::write(&path, &png).is_ok() {

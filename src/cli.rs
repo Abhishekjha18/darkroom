@@ -11,8 +11,6 @@ pub struct Args {
     /// Overrides the address printed in the URL. For the no-default-route case.
     pub host: Option<String>,
     pub no_index: bool,
-    /// Inverts the terminal QR rendering for light-themed terminals (rung 5).
-    pub invert: bool,
     /// Skips launching the OS browser once the server is listening. For
     /// headless boxes and SSH sessions, where there is no display to open
     /// one on and the attempt would just print a harmless but confusing
@@ -35,7 +33,6 @@ OPTIONS:
     --port <PORT>    Port to listen on            [default: 8080]
     --host <ADDR>    Address to print in the URL  [default: auto-detected]
     --no-index       Serve an existing index without re-scanning
-    --invert         Invert the terminal QR code for light-themed terminals
     --no-open        Don't launch a browser once the server is listening
     -h, --help       Print this message
 
@@ -53,7 +50,6 @@ pub fn parse<I: IntoIterator<Item = String>>(argv: I) -> Result<Parsed, String> 
     let mut port: u16 = 8080;
     let mut host: Option<String> = None;
     let mut no_index = false;
-    let mut invert = false;
     let mut no_open = false;
 
     let mut it = argv.into_iter();
@@ -61,7 +57,6 @@ pub fn parse<I: IntoIterator<Item = String>>(argv: I) -> Result<Parsed, String> 
         match arg.as_str() {
             "-h" | "--help" => return Ok(Parsed::Help),
             "--no-index" => no_index = true,
-            "--invert" => invert = true,
             "--no-open" => no_open = true,
             "--port" => {
                 let v = it.next().ok_or("--port needs a value")?;
@@ -85,7 +80,7 @@ pub fn parse<I: IntoIterator<Item = String>>(argv: I) -> Result<Parsed, String> 
     }
 
     let root = root.ok_or("no folder given — try `darkroom ~/Pictures`")?;
-    Ok(Parsed::Run(Args { root, port, host, no_index, invert, no_open }))
+    Ok(Parsed::Run(Args { root, port, host, no_index, no_open }))
 }
 
 #[cfg(test)]
