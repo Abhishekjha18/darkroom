@@ -1,4 +1,4 @@
-//! Terminal and PNG rendering of a QR code.
+//! PNG rendering of a QR code.
 
 use super::Qr;
 use crate::image::Image;
@@ -8,50 +8,6 @@ use crate::image::Image;
 /// to detect the code at all, a failure that looks like a bad encoder rather
 /// than bad framing.
 pub const QUIET_ZONE: usize = 4;
-
-const RESET: &str = "\x1b[0m";
-const WHITE_BG: &str = "\x1b[47m";
-const BLACK_BG: &str = "\x1b[40m";
-const WHITE_FG: &str = "\x1b[37m";
-const BLACK_FG: &str = "\x1b[30m";
-
-/// Renders with **half-block glyphs, two QR rows per text row**.
-///
-/// Terminal cells are roughly 1:2, so full-block rendering produces a code
-/// twice as tall as it is wide, which many scanners reject. Half-blocks with
-/// foreground and background colours give square modules.
-///
-/// `invert` swaps the polarity: on a dark-themed terminal the naive
-/// rendering comes out inverted, and **most scanners refuse inverted codes**.
-pub fn terminal(qr: &Qr, invert: bool) -> String {
-    let n = qr.size + QUIET_ZONE * 2;
-    let dark = |row: usize, col: usize| -> bool {
-        if row < QUIET_ZONE || col < QUIET_ZONE {
-            return false;
-        }
-        let (r, c) = (row - QUIET_ZONE, col - QUIET_ZONE);
-        r < qr.size && c < qr.size && qr.dark(r, c)
-    };
-
-    let (d_fg, l_fg) = if invert { (WHITE_FG, BLACK_FG) } else { (BLACK_FG, WHITE_FG) };
-    let (d_bg, l_bg) = if invert { (WHITE_BG, BLACK_BG) } else { (BLACK_BG, WHITE_BG) };
-
-    let mut out = String::with_capacity(n * n * 4);
-    for row in (0..n).step_by(2) {
-        for col in 0..n {
-            // The upper half-block paints the foreground on the top row and
-            // the background on the bottom one.
-            let top = dark(row, col);
-            let bottom = row + 1 < n && dark(row + 1, col);
-            out.push_str(if top { d_fg } else { l_fg });
-            out.push_str(if bottom { d_bg } else { l_bg });
-            out.push('\u{2580}'); // upper half block
-        }
-        out.push_str(RESET);
-        out.push('\n');
-    }
-    out
-}
 
 /// Renders to an RGB image, `scale` pixels per module, with the quiet zone.
 ///
@@ -92,29 +48,6 @@ mod tests {
 
     fn code() -> Qr {
         qr::encode("http://192.168.0.105:8080").unwrap()
-    }
-
-    #[test]
-    fn terminal_output_has_the_right_shape() {
-        let q = code();
-        let s = terminal(&q, false);
-        let lines: Vec<&str> = s.lines().collect();
-        let n = q.size + QUIET_ZONE * 2;
-        // Two module rows per text row, rounded up.
-        assert_eq!(lines.len(), n.div_ceil(2));
-        // Every line carries one glyph per column.
-        for l in &lines {
-            assert_eq!(l.matches('\u{2580}').count(), n);
-        }
-    }
-
-    #[test]
-    fn inverting_swaps_the_colour_codes() {
-        let q = code();
-        let normal = terminal(&q, false);
-        let inverted = terminal(&q, true);
-        assert_ne!(normal, inverted);
-        assert_eq!(normal.len(), inverted.len());
     }
 
     #[test]
