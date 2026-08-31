@@ -1,0 +1,122 @@
+:root {
+  --bg: #0e1014;
+  --surface: #171a21;
+  --surface-2: #1f242d;
+  --line: #2a3038;
+  --ink: #e8ecf1;
+  --muted: #8b95a3;
+  --accent: #d9a441;
+  --bad: #d96b41;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+code {
+  font: 13px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: var(--surface-2);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+a { color: var(--accent); }
+
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 16px;
+  background: rgba(14, 16, 20, .88);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: var(--accent);
+}
+
+.sub {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+main {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+.blurb {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 0 0 20px;
+}
+
+input#text {
+  width: 100%;
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  outline: none;
+}
+
+input#text:focus {
+  border-color: var(--accent);
+}
+
+#stage {
+  margin: 22px 0 14px;
+  min-height: 260px;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+#qr {
+  image-rendering: pixelated;
+  width: min(100%, 320px);
+  height: auto;
+  background: #fff;
+  border-radius: 2px;
+}
+
+.message {
+  margin: 0;
+  color: var(--bad);
+  font-size: 14px;
+  text-align: center;
+}
+
+.status {
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.note {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>darkroom — QR playground</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="bar">
+    <span class="brand">darkroom</span>
+    <span class="sub">QR playground</span>
+  </header>
+
+  <main>
+    <p class="blurb">
+      This isn't a mockup. Your browser downloaded a <code>.wasm</code> file built straight from
+      <a href="https://github.com/Abhishekjha18/darkroom/tree/main/src/qr" target="_blank" rel="noopener">
+        <code>src/qr/</code></a> — the same GF(256) field, Reed–Solomon error correction, and mask
+      scoring darkroom uses to print the pairing code on your terminal — and it's running the encode
+      below, in this tab, with no server involved.
+    </p>
+
+    <input
+      id="text"
+      type="text"
+      inputmode="text"
+      autocomplete="off"
+      spellcheck="false"
+      placeholder="type text or a URL…"
+      value="http://192.168.0.105:8080"
+    />
+
+    <div id="stage">
+      <canvas id="qr" width="1" height="1" hidden></canvas>
+      <p id="message" class="message"></p>
+    </div>
+
+    <p id="status" class="status">loading darkroom.wasm…</p>
+
+    <p class="note">
+      Scoped to byte mode, versions 3–4, ECC level L — 78 bytes at most. That's deliberate, not a
+      bug: darkroom only ever needs to encode one LAN URL. See
+      <a href="https://github.com/Abhishekjha18/darkroom/blob/main/docs/LLD-QR.md" target="_blank" rel="noopener">
+        <code>docs/LLD-QR.md</code></a> for why.
+    </p>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
