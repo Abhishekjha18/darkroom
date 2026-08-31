@@ -44,6 +44,16 @@ impl Progress {
     pub fn finish(&self) {
         self.finished.store(true, Ordering::Relaxed);
     }
+
+    /// Starts a second indexing pass over the same `Progress` — retargeting
+    /// to a different folder reuses it rather than swapping in a fresh one,
+    /// so `/api/progress`'s one open SSE stream keeps working across the
+    /// switch instead of needing to reconnect.
+    pub fn reset(&self) {
+        self.done.store(0, Ordering::Relaxed);
+        self.total.store(0, Ordering::Relaxed);
+        self.finished.store(false, Ordering::Relaxed);
+    }
 }
 
 /// Runs `f` over every job across a fixed worker pool, returning results in
@@ -184,5 +194,18 @@ mod tests {
     fn worker_count_is_capped() {
         let n = worker_count();
         assert!(n >= 1 && n <= MAX_WORKERS);
+    }
+
+    #[test]
+    fn reset_undoes_a_finished_run() {
+        let p = Progress::default();
+        p.done.store(3, Ordering::Relaxed);
+        p.total.store(3, Ordering::Relaxed);
+        p.finish();
+        assert!(!p.is_indexing());
+
+        p.reset();
+        assert!(p.is_indexing());
+        assert_eq!(p.snapshot(), (0, 0));
     }
 }
