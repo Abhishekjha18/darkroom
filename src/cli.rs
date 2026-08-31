@@ -13,6 +13,11 @@ pub struct Args {
     pub no_index: bool,
     /// Inverts the terminal QR rendering for light-themed terminals (rung 5).
     pub invert: bool,
+    /// Skips launching the OS browser once the server is listening. For
+    /// headless boxes and SSH sessions, where there is no display to open
+    /// one on and the attempt would just print a harmless but confusing
+    /// error from the OS opener.
+    pub no_open: bool,
 }
 
 pub enum Parsed {
@@ -31,6 +36,7 @@ OPTIONS:
     --host <ADDR>    Address to print in the URL  [default: auto-detected]
     --no-index       Serve an existing index without re-scanning
     --invert         Invert the terminal QR code for light-themed terminals
+    --no-open        Don't launch a browser once the server is listening
     -h, --help       Print this message
 
 EXAMPLES:
@@ -48,6 +54,7 @@ pub fn parse<I: IntoIterator<Item = String>>(argv: I) -> Result<Parsed, String> 
     let mut host: Option<String> = None;
     let mut no_index = false;
     let mut invert = false;
+    let mut no_open = false;
 
     let mut it = argv.into_iter();
     while let Some(arg) = it.next() {
@@ -55,6 +62,7 @@ pub fn parse<I: IntoIterator<Item = String>>(argv: I) -> Result<Parsed, String> 
             "-h" | "--help" => return Ok(Parsed::Help),
             "--no-index" => no_index = true,
             "--invert" => invert = true,
+            "--no-open" => no_open = true,
             "--port" => {
                 let v = it.next().ok_or("--port needs a value")?;
                 port = v.parse().map_err(|_| format!("--port: `{v}` is not a port number"))?;
@@ -77,7 +85,7 @@ pub fn parse<I: IntoIterator<Item = String>>(argv: I) -> Result<Parsed, String> 
     }
 
     let root = root.ok_or("no folder given — try `darkroom ~/Pictures`")?;
-    Ok(Parsed::Run(Args { root, port, host, no_index, invert }))
+    Ok(Parsed::Run(Args { root, port, host, no_index, invert, no_open }))
 }
 
 #[cfg(test)]
@@ -113,5 +121,13 @@ mod tests {
     #[test]
     fn rejects_port_zero() {
         assert!(args(&["/photos", "--port", "0"]).is_err());
+    }
+
+    #[test]
+    fn no_open_defaults_to_false_and_parses() {
+        let Ok(Parsed::Run(a)) = args(&["/photos"]) else { panic!() };
+        assert!(!a.no_open);
+        let Ok(Parsed::Run(a)) = args(&["/photos", "--no-open"]) else { panic!() };
+        assert!(a.no_open);
     }
 }
