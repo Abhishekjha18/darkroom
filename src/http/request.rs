@@ -11,7 +11,11 @@ pub const MAX_HEAD: usize = 8 * 1024;
 pub enum Method {
     Get,
     Head,
-    /// Anything else. darkroom serves `GET` and `HEAD` and nothing more.
+    /// Recognised so `/api/root` can accept it — the one mutating route
+    /// darkroom has. `route()` still answers `405` to a `POST` anywhere
+    /// else.
+    Post,
+    /// Anything else. darkroom serves `GET`, `HEAD`, and that one `POST`.
     Other,
 }
 
@@ -33,6 +37,10 @@ pub struct Request<'a> {
     pub method: Method,
     /// Path only, percent-decoded, query string removed.
     pub path: String,
+    /// Raw, still percent-encoded, everything after `?`. `None` route reads
+    /// this except `/api/root`'s `path=`, so it stays raw rather than
+    /// growing a general parser for one field.
+    pub query: Option<String>,
     pub version_1_1: bool,
     /// A `Vec`, not a map. There are about eight of them, so a linear scan is
     /// faster than hashing and a third of the code.
@@ -125,6 +133,7 @@ pub fn parse(head: &[u8]) -> Result<Request<'_>, ParseError> {
     let method = match parts.next().ok_or(ParseError::Malformed)? {
         "GET" => Method::Get,
         "HEAD" => Method::Head,
+        "POST" => Method::Post,
         "" => return Err(ParseError::Malformed),
         _ => Method::Other,
     };
@@ -134,9 +143,13 @@ pub fn parse(head: &[u8]) -> Result<Request<'_>, ParseError> {
     }
     let version_1_1 = matches!(parts.next(), Some("HTTP/1.1"));
 
-    // The query string is stripped: no route reads one, and carrying it
-    // would only invite a route that does.
-    let raw_path = target.split(['?', '#']).next().unwrap_or("/");
+    // Split off the query string once, here, rather than letting every route
+    // that might want a field re-parse `target` itself.
+    let without_fragment = target.split('#').next().unwrap_or(target);
+    let (raw_path, query) = match without_fragment.split_once('?') {
+        Some((p, q)) => (p, Some(q.to_string())),
+        None => (without_fragment, None),
+    };
     let path = percent_decode(raw_path);
 
     let mut headers = Vec::with_capacity(8);
@@ -150,7 +163,7 @@ pub fn parse(head: &[u8]) -> Result<Request<'_>, ParseError> {
         headers.push((k.trim(), v.trim()));
     }
 
-    Ok(Request { method, path, version_1_1, headers })
+    Ok(Request { method, path, query, version_1_1, headers })
 }
 
 /// Percent-decoding. The corpus contains `unicode-写真-🎞.jpg`, which a
@@ -158,7 +171,7 @@ pub fn parse(head: &[u8]) -> Result<Request<'_>, ParseError> {
 ///
 /// Invalid escapes are left as literal text rather than dropped — a `%` in a
 /// filename is legal and must survive the round trip.
-fn percent_decode(s: &str) -> String {
+pub(super) fn percent_decode(s: &str) -> String {
     let b = s.as_bytes();
     let mut out = Vec::with_capacity(b.len());
     let mut i = 0;
@@ -230,8 +243,22 @@ mod tests {
     }
 
     #[test]
-    fn post_is_recognised_but_not_served() {
-        assert_eq!(req("POST / HTTP/1.1\r\n\r\n").method, Method::Other);
+    fn post_is_its_own_method() {
+        // Recognised so /api/root can accept it; route() still 405s a POST
+        // to anywhere else.
+        assert_eq!(req("POST / HTTP/1.1\r\n\r\n").method, Method::Post);
+    }
+
+    #[test]
+    fn query_string_is_split_off_and_kept_raw() {
+        let r = req("GET /api/root?path=%2FUsers%2Fa HTTP/1.1\r\n\r\n");
+        assert_eq!(r.path, "/api/root");
+        assert_eq!(r.query.as_deref(), Some("path=%2FUsers%2Fa"));
+    }
+
+    #[test]
+    fn no_query_string_is_none() {
+        assert_eq!(req("GET / HTTP/1.1\r\n\r\n").query, None);
     }
 
     #[test]
