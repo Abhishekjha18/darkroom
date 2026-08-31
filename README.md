@@ -44,9 +44,7 @@ real call across the WASM boundary into the same encoder the CLI uses.
 ## What it does
 
 - Indexes a photo folder — decoding JPEG (baseline **and progressive**), PNG, and GIF from
-  scratch, plus reading EXIF (both TIFF byte orders) and HEIC container metadata. HEIC files
-  catalogue correctly (date, camera, GPS) with a clearly labelled preview-unavailable tile —
-  the container is HEVC-encoded, and decoding video codecs is a different project
+  scratch, plus reading EXIF (both TIFF byte orders) and HEIC container metadata
 - Serves a browsable timeline over your LAN, grouped by the date the photo was *taken* (from
   EXIF), not the date the file happens to sit at on disk
 - Finds near-duplicates with a from-scratch perceptual hash — the same shot at a different
@@ -57,8 +55,6 @@ real call across the WASM boundary into the same encoder the CLI uses.
 - Lets you switch which folder is being browsed from that same pairing page, live, without
   restarting the process — guarded so only the machine darkroom is running on can do it (a
   phone on the same Wi-Fi can browse the timeline, never redirect it)
-- Speaks plain HTTP, LAN-only, by design — Rust's standard library has no TLS, and a photo
-  timeline for your own home network never needed one
 
 ## Install / build
 
@@ -100,6 +96,20 @@ afterward, including a live phone camera. That fix, and the reasoning behind it,
 [`4ae1591`](https://github.com/Abhishekjha18/darkroom/commit/4ae1591e9728d686519aa6f3fdcebeb5eba89ea3).
 The honest version of "well-tested" is that this happened *despite* a passing test suite, not
 that a passing suite ruled it out.
+
+## Limits — read this part
+
+- **HEIC photos do not display.** The container parses fine — HEIC files are catalogued with a
+  correct date, camera, and GPS — but the image data inside is HEVC-encoded, which needs CABAC
+  arithmetic decoding and a real intra-prediction pipeline. That's out of scope here, and those
+  files show a "preview unavailable" placeholder rather than pretending otherwise.
+- **No video.** Photos only, by design — a video codec is a different project.
+- **No HTTPS.** Rust's standard library has no TLS, so darkroom is plain HTTP and LAN-only by
+  construction. Don't expose it past your own network.
+- **Thread-per-connection, not async.** Fine for a phone or two on a home network; not meant for
+  the open web.
+- **Duplicate detection is heuristic**, like every perceptual hash. False positives exist —
+  darkroom never deletes anything on its own, only reports and lets you decide.
 
 ## Further reading
 
