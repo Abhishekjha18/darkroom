@@ -247,7 +247,13 @@ fn write_format(m: &mut [Vec<bool>], mask_id: u8) {
         }
     }
     let format = ((data << 10) | rem) ^ 0b101_0100_0001_0010;
-    let bit = |i: u32| (format >> i) & 1 == 1;
+    // ISO/IEC 18004 places the MSB (bit 14) at the first position in each
+    // copy's sequence, not the LSB — `format >> i` here would write every
+    // copy bit-reversed relative to what a real scanner expects at each of
+    // these coordinates. Every position loop below is already spec-correct
+    // (verified against a real scanner's own extraction order); only the
+    // bit selected for each position needed flipping.
+    let bit = |i: u32| (format >> (14 - i)) & 1 == 1;
 
     // Copy 1, around the top-left finder.
     for i in 0..6u32 {
@@ -347,6 +353,11 @@ mod tests {
 
     /// The format information must decode back to the mask that was chosen,
     /// from both copies independently.
+    ///
+    /// Bit weights here are `14 - i`, not `i` — position order down each
+    /// copy is spec-correct (first position is bit 14, the MSB), matching
+    /// `write_format`'s own placement. A real scanner (verified against
+    /// `jsQR`'s independent extraction) reads it the same way.
     #[test]
     fn both_format_copies_agree() {
         let q = encode("http://192.168.0.105:8080").unwrap();
@@ -354,21 +365,21 @@ mod tests {
 
         let mut copy1 = 0u32;
         for i in 0..6u32 {
-            copy1 |= (q.dark(8, i as usize) as u32) << i;
+            copy1 |= (q.dark(8, i as usize) as u32) << (14 - i);
         }
-        copy1 |= (q.dark(8, 7) as u32) << 6;
-        copy1 |= (q.dark(8, 8) as u32) << 7;
-        copy1 |= (q.dark(7, 8) as u32) << 8;
+        copy1 |= (q.dark(8, 7) as u32) << (14 - 6);
+        copy1 |= (q.dark(8, 8) as u32) << (14 - 7);
+        copy1 |= (q.dark(7, 8) as u32) << (14 - 8);
         for i in 9..15u32 {
-            copy1 |= (q.dark(14 - i as usize, 8) as u32) << i;
+            copy1 |= (q.dark(14 - i as usize, 8) as u32) << (14 - i);
         }
 
         let mut copy2 = 0u32;
         for i in 0..8u32 {
-            copy2 |= (q.dark(n - 1 - i as usize, 8) as u32) << i;
+            copy2 |= (q.dark(n - 1 - i as usize, 8) as u32) << (14 - i);
         }
         for i in 8..15u32 {
-            copy2 |= (q.dark(8, n - 15 + i as usize) as u32) << i;
+            copy2 |= (q.dark(8, n - 15 + i as usize) as u32) << (14 - i);
         }
 
         assert_eq!(copy1, copy2, "the two format copies disagree");
