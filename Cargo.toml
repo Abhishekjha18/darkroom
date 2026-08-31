@@ -8,6 +8,14 @@ license = "MIT"
 # This is the headline claim. Nothing goes here, ever.
 [dependencies]
 
+# `cdylib` is what makes `cargo build --target wasm32-unknown-unknown` emit a
+# loadable `.wasm` at all; `rlib` keeps the library usable as an ordinary
+# Rust dependency (of which there are none, but the type costs nothing to
+# keep). The binary (`src/main.rs`) does not link against this — the two
+# targets share source files, not a build dependency.
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [profile.release]
 opt-level = 3
 # `panic = "abort"` would silently disable the catch_unwind at the worker
