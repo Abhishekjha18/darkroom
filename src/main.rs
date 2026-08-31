@@ -29,7 +29,7 @@ mod walk;
 
 use std::path::Path;
 use std::process::ExitCode;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use std::time::Instant;
 
 use catalog::Catalog;
@@ -71,16 +71,26 @@ fn run(args: cli::Args) -> Result<(), String> {
     let shown = display_path(&root);
     println!("darkroom - {shown}");
 
-    // Held for the lifetime of the run; dropping it removes the lockfile.
+    // Held until a retarget from the web UI replaces it with a lock on the
+    // new folder (see below); dropping it removes the lockfile.
     let lock = index::Lock::acquire(&root);
     let previous = index::load(&root);
 
     let progress = Arc::new(Progress::default());
-    let state = Arc::new(http::State {
-        catalog: RwLock::new(Arc::new(Catalog::from_entries(Vec::new()))),
-        progress: Arc::clone(&progress),
-        root: shown.clone(),
-    });
+    // The real (not `--host`-overridden) address darkroom advertises on the
+    // LAN. `/api/root` checks a connecting peer against this, not `--host`,
+    // because that flag can be any string a user hands it — an override for
+    // the *printed* URL is not a fact about who is actually allowed to
+    // retarget the indexer.
+    let own_lan_ip = net::local_ip();
+    let (retarget_tx, retarget_rx) = std::sync::mpsc::channel::<std::path::PathBuf>();
+    let state = Arc::new(http::State::new(
+        Catalog::from_entries(Vec::new()),
+        Arc::clone(&progress),
+        shown.clone(),
+        Some(retarget_tx),
+        own_lan_ip,
+    ));
 
     if args.no_index {
         let entries = previous
@@ -106,11 +116,43 @@ fn run(args: cli::Args) -> Result<(), String> {
             .map_err(|e| format!("cannot start the indexer: {e}"))?;
     }
 
+    // Retargeting from the web UI (`/api/root`) arrives here, one folder at
+    // a time, and reuses the exact same building block as the startup index
+    // above — walk, build, publish, persist — just run again later instead
+    // of only once at boot. The lock moves into this thread rather than
+    // staying in `run`'s own scope, so it lives exactly as long as darkroom
+    // is willing to keep switching folders: the whole process, and a fresh
+    // one is acquired (dropping the old) on every switch.
+    {
+        let bg = Arc::clone(&state);
+        let progress_for_thread = Arc::clone(&progress);
+        std::thread::Builder::new()
+            .name("darkroom-retarget".into())
+            .spawn(move || {
+                // Held for its Drop side effect, not read — the compiler
+                // can't see that keeping the lockfile alive between here and
+                // the first retarget (if one ever comes) is the whole point.
+                #[allow(unused_assignments)]
+                let mut lock = lock;
+                for new_root in retarget_rx {
+                    // `progress` was already reset synchronously by the
+                    // request that sent this — see `State::request_retarget`
+                    // for why that ordering matters.
+                    lock = index::Lock::acquire(&new_root);
+                    let can_write = lock.held();
+                    let previous = index::load(&new_root);
+                    bg.set_root(display_path(&new_root));
+                    index_folder(&new_root, previous, &bg, &progress_for_thread, can_write);
+                }
+            })
+            .map_err(|e| format!("cannot start the retarget listener: {e}"))?;
+    }
+
     // The address to print. `--host` wins; otherwise the UDP default-route
-    // trick, which is the only reliable answer `std` leaves open.
+    // trick already run above to decide who's allowed to retarget.
     let host = match &args.host {
         Some(h) => h.clone(),
-        None => match net::local_ip() {
+        None => match own_lan_ip {
             Some(ip) => ip.to_string(),
             None => {
                 eprintln!("note: no default route found; printing the loopback address.");
@@ -125,10 +167,19 @@ fn run(args: cli::Args) -> Result<(), String> {
     println!("  {url}");
     println!();
     println!("  scan the code, or open that on your phone: same Wi-Fi, nothing uploaded");
+    if !args.no_open {
+        println!("  opening it in your browser too — pass --no-open to skip that");
+    }
     println!("  ctrl-c to stop");
     println!();
 
-    http::serve(state, args.port).map_err(|e| {
+    let no_open = args.no_open;
+    http::serve(state, args.port, move || {
+        if !no_open {
+            open_browser(&url);
+        }
+    })
+    .map_err(|e| {
         if e.kind() == std::io::ErrorKind::AddrInUse {
             // Never silently pick another port: the URL above would then be
             // right and the user's memory of it wrong.
@@ -222,6 +273,24 @@ fn print_qr(url: &str, invert: bool) {
         }
         Err(e) => eprintln!("note: could not render a QR code ({e}); use the URL below"),
     }
+}
+
+/// Launches the OS's own browser opener. Best-effort: a headless box or a
+/// bare SSH session has no display for it to open on, and that is not a
+/// reason to fail a server that is otherwise up and serving fine — the URL
+/// printed above still works, which is why this never returns a `Result`
+/// darkroom would have to act on.
+fn open_browser(url: &str) {
+    #[cfg(target_os = "macos")]
+    let cmd = std::process::Command::new("open").arg(url).spawn();
+    #[cfg(target_os = "windows")]
+    // `start` is a `cmd` builtin, not its own executable, and its first
+    // argument is a window title — left empty here — not the thing to open.
+    let cmd = std::process::Command::new("cmd").args(["/C", "start", "", url]).spawn();
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    let cmd = std::process::Command::new("xdg-open").arg(url).spawn();
+
+    let _ = cmd;
 }
 
 /// Windows canonicalisation produces a `\\?\` prefix that is correct and
